@@ -1,0 +1,346 @@
+// 练功房自动生成的测试文件，每次运行都会覆盖，不要修改。
+package mr
+
+import (
+	"encoding/json"
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+	"unicode"
+
+	"lab/dojo"
+)
+
+var inputNames = []string{"pg-0.txt", "pg-1.txt", "pg-2.txt", "pg-3.txt"}
+var inputs = map[string]string{
+	"pg-0.txt": "A distributed system is a group of computers that work together. The computers talk over a network, and the network can lose or delay messages.",
+	"pg-1.txt": "MapReduce splits a big job into many small tasks. A map task reads one input file and emits pairs. A reduce task collects the pairs for its keys.",
+	"pg-2.txt": "Workers can crash at any time. The coordinator notices when a task takes too long and gives the task to another worker.",
+	"pg-3.txt": "If two workers run the same task, both write output. Writing to a temporary file and renaming it keeps the final file whole.",
+}
+
+// fail reports a failure the web UI understands, then stops the test.
+func fail(t *testing.T, code, msg string, extra ...map[string]interface{}) {
+	t.Helper()
+	m := map[string]interface{}{"code": code, "msg": msg}
+	for _, e := range extra {
+		for k, v := range e {
+			m[k] = v
+		}
+	}
+	b, _ := json.Marshal(m)
+	t.Log("DOJO_FAIL " + string(b))
+	t.FailNow()
+}
+
+func refWords(s string) []string {
+	return strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) })
+}
+
+func refCounts(texts ...string) map[string]int {
+	m := map[string]int{}
+	for _, s := range texts {
+		for _, w := range refWords(s) {
+			m[w]++
+		}
+	}
+	return m
+}
+
+func refLines(m map[string]int) []string {
+	var out []string
+	for k, v := range m {
+		out = append(out, k+" "+strconv.Itoa(v))
+	}
+	sort.Strings(out)
+	return out
+}
+
+func refBuckets(text string, n int) [][]KeyValue {
+	b := make([][]KeyValue, n)
+	for _, w := range refWords(text) {
+		b[ihash(w)%n] = append(b[ihash(w)%n], KeyValue{w, "1"})
+	}
+	return b
+}
+
+func encodeKVs(kvs []KeyValue) []byte {
+	var sb strings.Builder
+	for _, kv := range kvs {
+		b, _ := json.Marshal(kv)
+		sb.Write(b)
+		sb.WriteByte('\n')
+	}
+	return []byte(sb.String())
+}
+
+func decodeKVs(data []byte) ([]KeyValue, bool) {
+	var out []KeyValue
+	for _, ln := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		if ln == "" {
+			continue
+		}
+		var kv KeyValue
+		if json.Unmarshal([]byte(ln), &kv) != nil {
+			return nil, false
+		}
+		out = append(out, kv)
+	}
+	return out, true
+}
+
+func lines(data []byte) []string {
+	s := strings.TrimRight(string(data), "\n")
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, "\n")
+}
+
+func taskName(tp TaskType, id int) string {
+	switch tp {
+	case MapTask:
+		return fmt.Sprintf("M%d", id)
+	case ReduceTask:
+		return fmt.Sprintf("R%d", id)
+	case WaitTask:
+		return "wait"
+	case ExitTask:
+		return "exit"
+	}
+	return "?"
+}
+
+func method(m string) string {
+	if i := strings.LastIndex(m, "."); i >= 0 {
+		return m[i+1:]
+	}
+	return m
+}
+
+// ---------------------------------------------------------------- full jobs
+
+type at struct {
+	after time.Duration
+	id    int
+}
+
+type jobOpts struct {
+	workers, nReduce int
+	files            []string
+	seed             int64
+	slow             map[int]float64
+	crashes, spawns  []at
+	crashFirstReduce time.Duration
+	limit            time.Duration
+	needExit         bool
+}
+
+type job struct {
+	cl       *dojo.Cluster
+	doneAt   float64
+	assigned map[string][]int
+	crashed  bool
+}
+
+func runJob(t *testing.T, o jobOpts) *job {
+	t.Helper()
+	if o.files == nil {
+		o.files = inputNames
+	}
+	M, R := len(o.files), o.nReduce
+	cl := dojo.NewCluster(o.seed)
+	defer cl.WriteTrace(t.Name())
+	for _, f := range o.files {
+		cl.Put(f, []byte(inputs[f]))
+	}
+	for id, s := range o.slow {
+		cl.SetSlow(id, s)
+	}
+	coord := MakeCoordinator(append([]string(nil), o.files...), R)
+	if coord == nil {
+		fail(t, "coord_nil", "MakeCoordinator 返回了 nil。")
+	}
+	cl.SetServer(coord)
+
+	var mu sync.Mutex
+	j := &job{cl: cl, doneAt: -1, assigned: map[string][]int{}}
+	mapsDone := map[int]bool{}
+	var problem map[string]interface{}
+	setProblem := func(code, msg string) {
+		if problem == nil {
+			problem = map[string]interface{}{"code": code, "msg": msg}
+		}
+	}
+	reduceCrashed := false
+	cl.OnCall = func(w int, m string, a, r interface{}) {
+		switch method(m) {
+		case "GetTask":
+			rep, ok := r.(*GetTaskReply)
+			if !ok {
+				return
+			}
+			name := taskName(rep.Type, rep.ID)
+			cl.Ev("assign", "w", w, "task", name)
+			mu.Lock()
+			defer mu.Unlock()
+			switch rep.Type {
+			case MapTask:
+				if rep.ID < 0 || rep.ID >= M || rep.File != o.files[rep.ID] || rep.NReduce != R {
+					setProblem("bad_reply", fmt.Sprintf("Map 任务的回复不对：%+v。ID 应在 0 到 %d 之间，File 是对应的输入文件，NReduce 是 %d。", *rep, M-1, R))
+				}
+			case ReduceTask:
+				if rep.ID < 0 || rep.ID >= R || rep.NMap != M {
+					setProblem("bad_reply", fmt.Sprintf("Reduce 任务的回复不对：%+v。ID 应在 0 到 %d 之间，NMap 是 %d。", *rep, R-1, M))
+				}
+				if len(mapsDone) < M {
+					var left []string
+					for x := 0; x < M; x++ {
+						if !mapsDone[x] {
+							left = append(left, fmt.Sprintf("M%d", x))
+						}
+					}
+					setProblem("early_reduce", fmt.Sprintf("t=%.2fs 协调者把 R%d 分给了 W%d，但 %s 还没有完成。所有 Map 完成之前不能开始 Reduce。", cl.Now(), rep.ID, w, strings.Join(left, "、")))
+				}
+				if o.crashFirstReduce > 0 && !reduceCrashed {
+					reduceCrashed = true
+					time.AfterFunc(o.crashFirstReduce, func() { cl.Crash(w) })
+				}
+			case WaitTask, ExitTask:
+			default:
+				setProblem("bad_reply", fmt.Sprintf("GetTask 回复的 Type 是 %d，不是 MapTask、ReduceTask、WaitTask、ExitTask 之一。", rep.Type))
+			}
+			if rep.Type == MapTask || rep.Type == ReduceTask {
+				j.assigned[name] = append(j.assigned[name], w)
+			}
+		case "TaskDone":
+			args, ok := a.(*TaskDoneArgs)
+			if !ok {
+				return
+			}
+			cl.Ev("report", "w", w, "task", taskName(args.Type, args.ID))
+			mu.Lock()
+			if args.Type == MapTask {
+				mapsDone[args.ID] = true
+			}
+			mu.Unlock()
+		}
+	}
+
+	start := func(id int) {
+		cl.Go(id, func() { Worker(id, cl.Client(id), cl.FS(id), Map, Reduce) })
+	}
+	for i := 0; i < o.workers; i++ {
+		start(i)
+	}
+	ids := []int{}
+	for i := 0; i < o.workers; i++ {
+		ids = append(ids, i)
+	}
+	for _, c := range o.crashes {
+		c := c
+		j.crashed = true
+		time.AfterFunc(c.after, func() { cl.Crash(c.id) })
+	}
+	for _, s := range o.spawns {
+		s := s
+		ids = append(ids, s.id)
+		time.AfterFunc(s.after, func() { start(s.id) })
+	}
+	if o.crashFirstReduce > 0 {
+		j.crashed = true
+	}
+
+	deadline := time.Now().Add(o.limit)
+	var doneWall time.Time
+	for time.Now().Before(deadline) {
+		time.Sleep(40 * time.Millisecond)
+		mu.Lock()
+		p := problem
+		mu.Unlock()
+		if p != nil {
+			cl.Shutdown()
+			fail(t, p["code"].(string), p["msg"].(string))
+		}
+		if w := cl.Spinning(); w >= 0 {
+			cl.Shutdown()
+			fail(t, "spin", fmt.Sprintf("W%d 发了几千次 RPC。收到 WaitTask 之后要先 time.Sleep 一会儿再请求。", w))
+		}
+		if j.doneAt < 0 && coord.Done() {
+			j.doneAt = cl.Now()
+			doneWall = time.Now()
+			cl.Ev("done")
+		}
+		if j.doneAt >= 0 && time.Since(doneWall) > 800*time.Millisecond {
+			break
+		}
+	}
+	var stuck []string
+	for _, id := range ids {
+		if cl.Alive(id) {
+			stuck = append(stuck, fmt.Sprintf("W%d", id))
+		}
+	}
+	cl.Shutdown()
+
+	if j.doneAt < 0 {
+		if j.crashed {
+			fail(t, "no_reassign", fmt.Sprintf("%.0f 秒内作业没有完成。有 worker 宕机后，它手上的任务可能再也没人做。", o.limit.Seconds()))
+		}
+		fail(t, "never_done", fmt.Sprintf("%.0f 秒内协调者的 Done() 一直没有返回 true。", o.limit.Seconds()))
+	}
+	var got []string
+	for _, f := range cl.Files("mr-out-") {
+		d, _ := cl.Get(f)
+		got = append(got, lines(d)...)
+	}
+	all := []string{}
+	for _, f := range o.files {
+		all = append(all, inputs[f])
+	}
+	want := refLines(refCounts(all...))
+	missing, extra := diff(want, got)
+	if len(missing)+len(extra) > 0 {
+		fail(t, "wrong_output", fmt.Sprintf("Done() 在 t=%.2fs 返回 true，但输出不对：缺少 %d 行，多出 %d 行。", j.doneAt, len(missing), len(extra)),
+			map[string]interface{}{"diff": map[string]interface{}{"missing": cut(missing), "extra": cut(extra)}})
+	}
+	if o.needExit && len(stuck) > 0 {
+		fail(t, "no_exit", fmt.Sprintf("作业完成后，%s 还没有退出。协调者应该回复 ExitTask，worker 收到后要 return。", strings.Join(stuck, "、")))
+	}
+	return j
+}
+
+func diff(want, got []string) (missing, extra []string) {
+	cnt := map[string]int{}
+	for _, w := range want {
+		cnt[w]++
+	}
+	for _, g := range got {
+		cnt[g]--
+	}
+	for k, v := range cnt {
+		for ; v > 0; v-- {
+			missing = append(missing, k)
+		}
+		for ; v < 0; v++ {
+			extra = append(extra, k)
+		}
+	}
+	sort.Strings(missing)
+	sort.Strings(extra)
+	return
+}
+
+func cut(s []string) []string {
+	if len(s) > 30 {
+		return s[:30]
+	}
+	if s == nil {
+		return []string{}
+	}
+	return s
+}

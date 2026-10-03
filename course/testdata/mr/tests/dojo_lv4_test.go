@@ -1,0 +1,178 @@
+// 练功房自动生成的测试文件，每次运行都会覆盖，不要修改。
+package mr
+
+import (
+	"fmt"
+	"reflect"
+	"sort"
+	"sync"
+	"testing"
+	"time"
+
+	"lab/dojo"
+)
+
+type stubCall struct {
+	method string
+	at     time.Time
+	tp     TaskType
+	id     int
+}
+
+// stubCoord 按剧本回复，用来单独测试 worker。
+type stubCoord struct {
+	mu      sync.Mutex
+	replies []GetTaskReply
+	calls   []stubCall
+}
+
+func (s *stubCoord) GetTask(a *GetTaskArgs, r *GetTaskReply) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.calls = append(s.calls, stubCall{method: "GetTask", at: time.Now()})
+	if len(s.replies) > 0 {
+		*r = s.replies[0]
+		s.replies = s.replies[1:]
+	} else {
+		r.Type = ExitTask
+	}
+	return nil
+}
+
+func (s *stubCoord) TaskDone(a *TaskDoneArgs, r *TaskDoneReply) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.calls = append(s.calls, stubCall{method: "TaskDone", at: time.Now(), tp: a.Type, id: a.ID})
+	return nil
+}
+
+func (s *stubCoord) done(tp TaskType, id int) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, c := range s.calls {
+		if c.method == "TaskDone" && c.tp == tp && c.id == id {
+			return true
+		}
+	}
+	return false
+}
+
+func runStub(t *testing.T, replies []GetTaskReply, prefill map[string][]byte) (*dojo.Cluster, *stubCoord) {
+	t.Helper()
+	cl := dojo.NewCluster(5)
+	defer cl.WriteTrace(t.Name())
+	for _, f := range inputNames {
+		cl.Put(f, []byte(inputs[f]))
+	}
+	for f, d := range prefill {
+		cl.Put(f, d)
+	}
+	s := &stubCoord{replies: replies}
+	cl.SetServer(s)
+	cl.OnCall = func(w int, m string, a, r interface{}) {
+		if rep, ok := r.(*GetTaskReply); ok {
+			cl.Ev("assign", "w", w, "task", taskName(rep.Type, rep.ID))
+		}
+		if args, ok := a.(*TaskDoneArgs); ok {
+			cl.Ev("report", "w", w, "task", taskName(args.Type, args.ID))
+		}
+	}
+	cl.Go(0, func() { Worker(0, cl.Client(0), cl.FS(0), Map, Reduce) })
+	deadline := time.Now().Add(5 * time.Second)
+	for !cl.Finished(0) && time.Now().Before(deadline) {
+		if cl.Spinning() >= 0 {
+			cl.Shutdown()
+			fail(t, "spin", "worker 发了几千次 RPC，可能是在循环里不停地请求。")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !cl.Finished(0) {
+		cl.Shutdown()
+		fail(t, "not_exit", "5 秒内 worker 没有结束。收到 ExitTask 之后，Worker 函数应该 return。")
+	}
+	return cl, s
+}
+
+func TestLv4_MapTask(t *testing.T) {
+	cl, s := runStub(t, []GetTaskReply{{Type: MapTask, ID: 2, File: "pg-2.txt", NReduce: 3, NMap: 4}, {Type: ExitTask}}, nil)
+	exp := refBuckets(inputs["pg-2.txt"], 3)
+	for y := 0; y < 3; y++ {
+		name := fmt.Sprintf("mr-2-%d", y)
+		d, ok := cl.Get(name)
+		if !ok {
+			fail(t, "no_inter_file", fmt.Sprintf("Map 任务 2 完成后应该有中间文件 %s，但没有找到。即使某个桶是空的，也要写一个空文件。", name))
+		}
+		kvs, ok := decodeKVs(d)
+		if !ok {
+			fail(t, "inter_format", fmt.Sprintf("%s 的格式不对。每一行应该是 json.Marshal(kv) 的结果，例如 {\"Key\":\"cat\",\"Value\":\"1\"}。", name))
+		}
+		got := append([]KeyValue(nil), kvs...)
+		want := append([]KeyValue(nil), exp[y]...)
+		less := func(a []KeyValue) func(i, j int) bool { return func(i, j int) bool { return a[i].Key < a[j].Key } }
+		sort.SliceStable(got, less(got))
+		sort.SliceStable(want, less(want))
+		if len(got) != len(want) || (len(want) > 0 && !reflect.DeepEqual(got, want)) {
+			fail(t, "inter_content", fmt.Sprintf("%s 应有 %d 个键值对，实际有 %d 个。检查分区：第 y 个桶写到 mr-X-y。", name, len(want), len(got)))
+		}
+	}
+	if !s.done(MapTask, 2) {
+		fail(t, "no_task_done", "做完 Map 任务后要调用 c.Call(\"Coordinator.TaskDone\", &TaskDoneArgs{MapTask, 2}, &TaskDoneReply{})。")
+	}
+}
+
+func TestLv4_ReduceTask(t *testing.T) {
+	pre := map[string][]byte{}
+	var all []string
+	for x := 0; x < 3; x++ {
+		pre[fmt.Sprintf("mr-%d-1", x)] = encodeKVs(refBuckets(inputs[inputNames[x]], 3)[1])
+		for _, kv := range refBuckets(inputs[inputNames[x]], 3)[1] {
+			all = append(all, kv.Key)
+		}
+	}
+	cl, s := runStub(t, []GetTaskReply{{Type: ReduceTask, ID: 1, NReduce: 3, NMap: 3}, {Type: ExitTask}}, pre)
+	m := map[string]int{}
+	for _, k := range all {
+		m[k]++
+	}
+	want := refLines(m)
+	d, ok := cl.Get("mr-out-1")
+	if !ok {
+		fail(t, "no_output", "Reduce 任务 1 完成后应该有输出文件 mr-out-1。")
+	}
+	if got := lines(d); !reflect.DeepEqual(got, want) {
+		fail(t, "out_content", fmt.Sprintf("mr-out-1 应有 %d 行，按键排序，例如 %q；实际有 %d 行。", len(want), want[0], len(got)))
+	}
+	if !s.done(ReduceTask, 1) {
+		fail(t, "no_task_done", "做完 Reduce 任务后要调用 TaskDone 汇报。")
+	}
+}
+
+func TestLv4_Wait(t *testing.T) {
+	_, s := runStub(t, []GetTaskReply{{Type: WaitTask}, {Type: WaitTask}, {Type: WaitTask}, {Type: ExitTask}}, nil)
+	var ts []time.Time
+	for _, c := range s.calls {
+		if c.method == "GetTask" {
+			ts = append(ts, c.at)
+		}
+	}
+	if len(ts) != 4 {
+		fail(t, "wait_count", fmt.Sprintf("协调者回了 3 次 WaitTask、1 次 ExitTask，worker 应该恰好请求 4 次任务，实际请求了 %d 次。", len(ts)))
+	}
+	for i := 1; i < len(ts); i++ {
+		if ts[i].Sub(ts[i-1]) < 30*time.Millisecond {
+			fail(t, "no_sleep", "收到 WaitTask 之后，要先 time.Sleep 一会儿（比如 100 毫秒）再请求。")
+		}
+	}
+}
+
+func TestLv4_Loop(t *testing.T) {
+	cl, _ := runStub(t, []GetTaskReply{{Type: MapTask, ID: 0, File: "pg-0.txt", NReduce: 2, NMap: 2}, {Type: WaitTask},
+		{Type: MapTask, ID: 1, File: "pg-1.txt", NReduce: 2, NMap: 2}, {Type: ExitTask}}, nil)
+	for x := 0; x < 2; x++ {
+		for y := 0; y < 2; y++ {
+			if _, ok := cl.Get(fmt.Sprintf("mr-%d-%d", x, y)); !ok {
+				fail(t, "loop", fmt.Sprintf("worker 应该一直循环请求任务，直到收到 ExitTask。没有找到 mr-%d-%d。", x, y))
+			}
+		}
+	}
+}

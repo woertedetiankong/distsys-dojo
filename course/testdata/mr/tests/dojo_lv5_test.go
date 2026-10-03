@@ -1,0 +1,40 @@
+// 练功房自动生成的测试文件，每次运行都会覆盖，不要修改。
+package mr
+
+import (
+	"fmt"
+	"testing"
+	"time"
+)
+
+func TestLv5_Basic(t *testing.T) {
+	runJob(t, jobOpts{workers: 3, nReduce: 3, seed: 11, limit: 8 * time.Second, needExit: true})
+}
+
+func TestLv5_OneWorker(t *testing.T) {
+	runJob(t, jobOpts{workers: 1, nReduce: 2, seed: 12, limit: 8 * time.Second, needExit: true})
+}
+
+func TestLv5_Parallel(t *testing.T) {
+	j := runJob(t, jobOpts{workers: 4, nReduce: 3, seed: 13, limit: 8 * time.Second, needExit: true})
+	for name, ws := range j.assigned {
+		if len(ws) > 1 {
+			fail(t, "dup_assign", fmt.Sprintf("没有任何故障，%s 却被分配了 %d 次。分出去的任务要立刻标记为进行中。", name, len(ws)))
+		}
+	}
+	ws := map[int]bool{}
+	for name, w := range j.assigned {
+		if name[0] == 'M' {
+			for _, x := range w {
+				ws[x] = true
+			}
+		}
+	}
+	if len(ws) < 3 {
+		fail(t, "no_parallel", fmt.Sprintf("4 个 worker、4 个 Map 任务，Map 只分给了 %d 个 worker。空闲的 worker 应该马上能领到任务。", len(ws)))
+	}
+}
+
+func TestLv5_OneReduce(t *testing.T) {
+	runJob(t, jobOpts{workers: 2, nReduce: 1, seed: 14, files: []string{"pg-0.txt", "pg-3.txt"}, limit: 8 * time.Second, needExit: true})
+}

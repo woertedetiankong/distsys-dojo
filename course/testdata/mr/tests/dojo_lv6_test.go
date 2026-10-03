@@ -1,0 +1,20 @@
+// 练功房自动生成的测试文件，每次运行都会覆盖，不要修改。
+package mr
+
+import (
+	"testing"
+	"time"
+)
+
+func TestLv6_CrashInMap(t *testing.T) {
+	runJob(t, jobOpts{workers: 3, nReduce: 3, seed: 21, crashes: []at{{15 * time.Millisecond, 0}}, limit: 10 * time.Second})
+}
+
+func TestLv6_CrashInReduce(t *testing.T) {
+	runJob(t, jobOpts{workers: 3, nReduce: 3, seed: 22, crashFirstReduce: 5 * time.Millisecond, limit: 10 * time.Second})
+}
+
+func TestLv6_CrashTwice(t *testing.T) {
+	runJob(t, jobOpts{workers: 3, nReduce: 2, seed: 23, crashes: []at{{20 * time.Millisecond, 0}, {60 * time.Millisecond, 1}},
+		spawns: []at{{2500 * time.Millisecond, 3}}, limit: 12 * time.Second})
+}
