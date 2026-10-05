@@ -32,7 +32,8 @@ const stepDone = (ep, k, auto) => done(ep.id, k) || !!(auto[k] && auto[k].done);
 /* ---------------- render ---------------- */
 const open = e => e.status !== 'planned';
 // default: the episode in the URL, else the first fully ready one, else the first with any material
-let current = EPISODES.find(e => e.id === location.hash.slice(1) && open(e)) || EPISODES.find(e => e.status === 'ready') || EPISODES.find(open) || EPISODES[0];
+const pick = () => EPISODES.find(e => e.id === location.hash.slice(1) && open(e)) || EPISODES.find(e => e.status === 'ready') || EPISODES.find(open) || EPISODES[0];
+let current = pick(), probed = false;
 let chapters = null, videoEl = null;
 
 function render(){
@@ -49,6 +50,7 @@ function render(){
   // keep the playing video alive across re-renders
   const keep = videoEl && videoEl.isConnected && videoEl.getAttribute('src') === `content/${ep.id}/video.mp4` ? videoEl : null;
   $('#steps').innerHTML = cards;
+  $('#steps').className = 'steps n' + steps.length;   // 4 steps (no video) sit better as 2 × 2
   if (keep){ const slot = $('#steps video'); if (slot) slot.replaceWith(keep); }
   bindSteps(ep, !!keep);
   renderMap();
@@ -154,7 +156,7 @@ addEventListener('hashchange', () => {
   const e = EPISODES.find(x => x.id === location.hash.slice(1) && open(x));
   if (e && e !== current){ current = e; videoEl = null; render(); scrollTo({top: 0, behavior: 'smooth'}); }
 });
-addEventListener('focus', render);
+addEventListener('focus', () => { if (probed) render(); });
 
 /* ---------------- runner status ---------------- */
 (async () => {
@@ -166,9 +168,15 @@ addEventListener('focus', render);
     const info = await res.json();
     dojoLevels = info.dojos || {};
     r.className = 'runner ok'; t.textContent = `本地运行器已连接 · ${info.go.split(' ')[0]}`;
-    render();
+    if (probed) render();
   } catch { r.className = 'runner bad'; t.textContent = '连不上本地运行器'; }
 })();
 
-render();
+// Videos are not in git: when an episode's video.mp4 isn't there, hide its video step
+// (an episode left with no steps shows as 制作中). Then draw.
+Promise.all(EPISODES.filter(e => open(e) && (e.steps || []).includes('video')).map(async e => {
+  let ok = false;
+  try { ok = (await fetch(`content/${e.id}/video.mp4`, {method: 'HEAD'})).ok; } catch {}
+  if (!ok){ e.steps = e.steps.filter(k => k !== 'video'); if (!e.steps.length) e.status = 'planned'; }
+})).then(() => { probed = true; current = pick(); render(); });
 })();

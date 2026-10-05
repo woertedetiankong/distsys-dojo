@@ -69,6 +69,7 @@ body.hub-body{display:block; height:auto; min-height:100%}
 
 .hub-foot{margin-top:20px; padding-top:16px; border-top:1px solid var(--edge); color:var(--faint); font-size:13px; max-width:62em}
 
+@media (min-width:681px){ .steps.n4{grid-template-columns:repeat(2,minmax(0,1fr))} }
 @media (max-width:1000px){
   .steps{grid-template-columns:repeat(2,minmax(0,1fr))}
   .player{grid-template-columns:minmax(0,1fr)}
