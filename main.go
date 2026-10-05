@@ -1,7 +1,9 @@
-// Go 练功房：本地运行器。
+// 分布式系统练功房：本地运行器。
 //
-// It serves the web UI on 127.0.0.1, keeps your code as real files in a
-// workspace folder, and runs `go test -race` on them when you press Run.
+// It serves the course home and the coding dojo on 127.0.0.1, keeps your code
+// as real files in a workspace folder, and runs `go test -race` on them when
+// you press Run. A course can hold several dojos, one per lab; each dojo is a
+// Go package under course/testdata/dojos/<id>/ (starter, tests, reference).
 //
 //	go run .                 # then open the printed link
 //	go run . -workspace ~/my-lab -addr 127.0.0.1:9000
@@ -37,8 +39,15 @@ import (
 //go:embed web
 var webFS embed.FS
 
+// Course files live under testdata so `go build ./...` and `go vet ./...` skip them.
+//
 //go:embed all:course/testdata
 var courseFS embed.FS
+
+const (
+	dojosDir  = "course/testdata/dojos"
+	sharedDir = "course/testdata/shared"
+)
 
 var (
 	addr      = flag.String("addr", "127.0.0.1:7878", "监听地址（只允许本机）")
@@ -54,15 +63,18 @@ var (
 	goVer    string
 	raceOK   bool
 	runMu    sync.Mutex
+	dojos    = map[string]int{} // dojo id -> number of levels
+	idRe     = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 	nameRe   = regexp.MustCompile(`^[a-z][a-z0-9_]*\.go$`)
-	buildErr = regexp.MustCompile(`^(?:\./|mr/)?([A-Za-z0-9_]+\.go):(\d+):(\d+): (.*)$`)
+	lvFileRe = regexp.MustCompile(`^dojo_lv(\d+)_test\.go$`)
+	buildErr = regexp.MustCompile(`^(?:\./)?(?:[a-z][a-z0-9_]*/)?([A-Za-z0-9_]+\.go):(\d+):(\d+): (.*)$`)
 )
 
 func main() {
 	flag.Parse()
 	host, _, err := net.SplitHostPort(*addr)
 	if err != nil || !(host == "127.0.0.1" || host == "localhost" || host == "::1") {
-		log.Fatal("为了安全，练功房只能监听本机地址，例如 127.0.0.1:7878")
+		log.Fatal("为了安全，运行器只能监听本机地址，例如 127.0.0.1:7878")
 	}
 	if goBin, err = exec.LookPath("go"); err != nil {
 		log.Fatal("没有找到 go 命令。请先安装 Go 1.22 或更新的版本：https://go.dev/dl/")
@@ -71,6 +83,9 @@ func main() {
 	goVer = strings.TrimSpace(strings.TrimPrefix(string(out), "go version "))
 	if wsDir, err = filepath.Abs(*workspace); err != nil {
 		log.Fatal(err)
+	}
+	if err := findDojos(); err != nil {
+		log.Fatal("读取练功房失败：", err)
 	}
 	if err := setupWorkspace(); err != nil {
 		log.Fatal("准备代码目录失败：", err)
@@ -96,7 +111,7 @@ func main() {
 		log.Fatal("无法监听 ", *addr, "：", err, "（可以用 -addr 换一个端口）")
 	}
 	url := fmt.Sprintf("http://%s/?t=%s", ln.Addr().String(), token)
-	fmt.Printf("\n  分布式系统练功房已启动\n\n  课程首页：  %s\n  代码目录：  %s\n  Go 版本：   %s%s\n\n  按 Ctrl+C 退出。\n\n", url, filepath.Join(wsDir, "mr"), goVer, map[bool]string{true: "", false: "（未检测到 -race 支持，将不检查数据竞争）"}[raceOK])
+	fmt.Printf("\n  分布式系统练功房 已启动\n\n  课程首页：  %s\n  代码目录：  %s\n  Go 版本：   %s%s\n\n  按 Ctrl+C 退出。\n\n", url, wsDir, goVer, map[bool]string{true: "", false: "（未检测到 -race 支持，将不检查数据竞争）"}[raceOK])
 	if *openFlag {
 		openBrowser(url)
 	}
@@ -105,54 +120,98 @@ func main() {
 
 // ---------------------------------------------------------------- workspace
 
-func setupWorkspace() error {
-	for _, d := range []string{"mr", "dojo"} {
-		if err := os.MkdirAll(filepath.Join(wsDir, d), 0o755); err != nil {
-			return err
+// findDojos lists the dojos and counts their levels from the test file names.
+func findDojos() error {
+	ents, err := fs.ReadDir(courseFS, dojosDir)
+	if err != nil {
+		return err
+	}
+	for _, e := range ents {
+		if !e.IsDir() || !idRe.MatchString(e.Name()) {
+			continue
 		}
+		tests, _ := fs.ReadDir(courseFS, dojosDir+"/"+e.Name()+"/tests")
+		n := 0
+		for _, t := range tests {
+			if m := lvFileRe.FindStringSubmatch(t.Name()); m != nil {
+				var lv int
+				fmt.Sscan(m[1], &lv)
+				if lv > n {
+					n = lv
+				}
+			}
+		}
+		dojos[e.Name()] = n
+	}
+	return nil
+}
+
+func setupWorkspace() error {
+	if err := os.MkdirAll(wsDir, 0o755); err != nil {
+		return err
 	}
 	gomod := filepath.Join(wsDir, "go.mod")
 	if _, err := os.Stat(gomod); errors.Is(err, os.ErrNotExist) {
 		os.WriteFile(gomod, []byte("module lab\n\ngo 1.22\n"), 0o644)
 	}
-	// starter code: only written when missing, never overwrites your work
-	starters, _ := fs.ReadDir(courseFS, "course/testdata/mr/starter")
-	for _, e := range starters {
-		dst := filepath.Join(wsDir, "mr", e.Name())
-		if _, err := os.Stat(dst); errors.Is(err, os.ErrNotExist) {
-			data, _ := courseFS.ReadFile("course/testdata/mr/starter/" + e.Name())
-			if err := os.WriteFile(dst, data, 0o644); err != nil {
-				return err
-			}
-		}
-	}
-	return refreshHarness()
-}
-
-// refreshHarness rewrites the simulator package and the tests, which are not yours to edit.
-func refreshHarness() error {
-	copyDir := func(src, dst string) error {
-		ents, err := fs.ReadDir(courseFS, src)
-		if err != nil {
+	for id := range dojos {
+		if err := os.MkdirAll(filepath.Join(wsDir, id), 0o755); err != nil {
 			return err
 		}
-		for _, e := range ents {
-			data, _ := courseFS.ReadFile(src + "/" + e.Name())
-			if err := os.WriteFile(filepath.Join(dst, e.Name()), data, 0o644); err != nil {
+		// starter code: only written when missing, never overwrites your work
+		src := dojosDir + "/" + id + "/starter"
+		starters, _ := fs.ReadDir(courseFS, src)
+		for _, e := range starters {
+			dst := filepath.Join(wsDir, id, e.Name())
+			if _, err := os.Stat(dst); errors.Is(err, os.ErrNotExist) {
+				data, _ := courseFS.ReadFile(src + "/" + e.Name())
+				if err := os.WriteFile(dst, data, 0o644); err != nil {
+					return err
+				}
+			}
+		}
+		if err := refreshHarness(id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func copyDir(src, dst string) error {
+	ents, err := fs.ReadDir(courseFS, src)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dst, 0o755); err != nil {
+		return err
+	}
+	for _, e := range ents {
+		if e.IsDir() {
+			continue
+		}
+		data, _ := courseFS.ReadFile(src + "/" + e.Name())
+		if err := os.WriteFile(filepath.Join(dst, e.Name()), data, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// refreshHarness rewrites the shared helper packages and the dojo's tests, which are not yours to edit.
+func refreshHarness(id string) error {
+	shared, _ := fs.ReadDir(courseFS, sharedDir)
+	for _, e := range shared {
+		if e.IsDir() {
+			if err := copyDir(sharedDir+"/"+e.Name(), filepath.Join(wsDir, e.Name())); err != nil {
 				return err
 			}
 		}
-		return nil
 	}
-	if err := copyDir("course/testdata/dojo", filepath.Join(wsDir, "dojo")); err != nil {
-		return err
-	}
-	return copyDir("course/testdata/mr/tests", filepath.Join(wsDir, "mr"))
+	return copyDir(dojosDir+"/"+id+"/tests", filepath.Join(wsDir, id))
 }
 
 func probeRace() bool {
-	cmd := exec.Command(goBin, "env", "CGO_ENABLED")
-	out, _ := cmd.Output()
+	out, _ := exec.Command(goBin, "env", "CGO_ENABLED").Output()
 	return strings.TrimSpace(string(out)) == "1"
 }
 
@@ -183,8 +242,18 @@ func writeJSON(w http.ResponseWriter, v interface{}) {
 	json.NewEncoder(w).Encode(v)
 }
 
+// dojoParam returns the requested dojo id, or "" after writing an error.
+func dojoParam(w http.ResponseWriter, r *http.Request) string {
+	id := r.URL.Query().Get("dojo")
+	if _, ok := dojos[id]; !ok {
+		http.Error(w, "unknown dojo", http.StatusBadRequest)
+		return ""
+	}
+	return id
+}
+
 func handleInfo(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, map[string]interface{}{"go": goVer, "race": raceOK, "workspace": filepath.Join(wsDir, "mr")})
+	writeJSON(w, map[string]interface{}{"go": goVer, "race": raceOK, "workspace": wsDir, "dojos": dojos})
 }
 
 type fileInfo struct {
@@ -193,8 +262,9 @@ type fileInfo struct {
 	Mtime   int64  `json:"mtime"`
 }
 
-func userFiles() ([]fileInfo, error) {
-	ents, err := os.ReadDir(filepath.Join(wsDir, "mr"))
+func userFiles(id string) ([]fileInfo, error) {
+	dir := filepath.Join(wsDir, id)
+	ents, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +274,7 @@ func userFiles() ([]fileInfo, error) {
 		if e.IsDir() || !nameRe.MatchString(n) || strings.HasSuffix(n, "_test.go") {
 			continue
 		}
-		data, err := os.ReadFile(filepath.Join(wsDir, "mr", n))
+		data, err := os.ReadFile(filepath.Join(dir, n))
 		if err != nil {
 			continue
 		}
@@ -216,7 +286,11 @@ func userFiles() ([]fileInfo, error) {
 }
 
 func handleFiles(w http.ResponseWriter, r *http.Request) {
-	files, err := userFiles()
+	id := dojoParam(w, r)
+	if id == "" {
+		return
+	}
+	files, err := userFiles(id)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -225,6 +299,10 @@ func handleFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleFile(w http.ResponseWriter, r *http.Request) {
+	id := dojoParam(w, r)
+	if id == "" {
+		return
+	}
 	name := r.URL.Query().Get("name")
 	if r.Method != http.MethodPut || !nameRe.MatchString(name) || strings.HasSuffix(name, "_test.go") {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -235,7 +313,7 @@ func handleFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	p := filepath.Join(wsDir, "mr", name)
+	p := filepath.Join(wsDir, id, name)
 	if err := os.WriteFile(p, data, 0o644); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -267,6 +345,7 @@ type testResult struct {
 }
 
 type runResult struct {
+	Dojo        string       `json:"dojo"`
 	Level       int          `json:"level"`
 	OK          bool         `json:"ok"`
 	Race        bool         `json:"race"`
@@ -284,8 +363,12 @@ type goEvent struct {
 }
 
 func handleRun(w http.ResponseWriter, r *http.Request) {
+	id := dojoParam(w, r)
+	if id == "" {
+		return
+	}
 	var req struct{ Level int }
-	if r.Method != http.MethodPost || json.NewDecoder(r.Body).Decode(&req) != nil || req.Level < 1 || req.Level > 7 {
+	if r.Method != http.MethodPost || json.NewDecoder(r.Body).Decode(&req) != nil || req.Level < 1 || req.Level > dojos[id] {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
@@ -294,20 +377,20 @@ func handleRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer runMu.Unlock()
-	writeJSON(w, runLevel(req.Level))
+	writeJSON(w, runLevel(id, req.Level))
 }
 
-func runLevel(level int) runResult {
+func runLevel(id string, level int) runResult {
 	start := time.Now()
-	res := runResult{Level: level, Race: raceOK, Tests: []testResult{}}
-	if err := refreshHarness(); err != nil {
+	res := runResult{Dojo: id, Level: level, Race: raceOK, Tests: []testResult{}}
+	if err := refreshHarness(id); err != nil {
 		res.Fatal = &testResult{Code: "internal", Msg: "准备测试文件失败：" + err.Error()}
 		return res
 	}
 	traceDir, _ := os.MkdirTemp("", "dojo-trace-")
 	defer os.RemoveAll(traceDir)
 
-	args := []string{"test", "-count=1", "-json", "-timeout", "90s", "-run", fmt.Sprintf("^TestLv%d_", level), "./mr/"}
+	args := []string{"test", "-count=1", "-json", "-timeout", "90s", "-run", fmt.Sprintf("^TestLv%d_", level), "./" + id + "/"}
 	if raceOK {
 		args = append([]string{"test", "-race"}, args[1:]...)
 	}
@@ -367,7 +450,7 @@ func runLevel(level int) runResult {
 	}
 	for _, name := range order {
 		t := tests[name]
-		classify(t)
+		classify(t, id)
 		if data, err := os.ReadFile(filepath.Join(traceDir, name+".json")); err == nil {
 			var tr struct {
 				TEnd   float64         `json:"t_end"`
@@ -383,7 +466,7 @@ func runLevel(level int) runResult {
 	po := pkgOut.String()
 	if strings.Contains(po, "fatal error:") || strings.Contains(po, "panic:") {
 		f := &testResult{Output: tail(po, 4000)}
-		classify(f)
+		classify(f, id)
 		res.Fatal = f
 	}
 	if len(res.BuildErrors) == 0 && len(res.Tests) == 0 && res.Fatal == nil && err != nil {
@@ -397,7 +480,8 @@ func runLevel(level int) runResult {
 }
 
 // classify turns raw test output into a failure code the UI has hints for.
-func classify(t *testResult) {
+// Tests report their own codes with a "DOJO_FAIL {json}" log line (see fail() in the test helpers).
+func classify(t *testResult, id string) {
 	out := t.Output
 	var clean []string
 	for _, ln := range strings.Split(out, "\n") {
@@ -418,7 +502,7 @@ func classify(t *testResult) {
 	switch {
 	case strings.Contains(out, "WARNING: DATA RACE"):
 		t.Code, t.Msg = "race", "-race 检测到数据竞争：两个 goroutine 同时访问了同一个变量，而且至少有一个在写。"
-		t.Detail = raceReport(out)
+		t.Detail = raceReport(out, id)
 	case strings.Contains(out, "concurrent map"):
 		t.Code, t.Msg = "concurrent_map", "Go 运行时检测到多个 goroutine 同时写同一个 map，程序直接崩溃了。"
 		t.Detail = section(out, "fatal error:", 30)
@@ -432,15 +516,18 @@ func classify(t *testResult) {
 	}
 }
 
-func raceReport(out string) string {
+// raceReport keeps the race detector's frames that point into the learner's package.
+func raceReport(out, id string) string {
 	s := section(out, "WARNING: DATA RACE", 60)
 	var keep []string
 	for _, ln := range strings.Split(s, "\n") {
-		if strings.Contains(ln, "/dojo/") || strings.Contains(ln, "/src/") || strings.Contains(ln, "/runtime/") {
+		if strings.Contains(ln, "/src/") || strings.Contains(ln, "/runtime/") {
 			continue
 		}
-		if i := strings.Index(ln, "/mr/"); i >= 0 {
-			ln = strings.Repeat(" ", len(ln)-len(strings.TrimLeft(ln, " \t"))) + ln[i+4:]
+		if i := strings.Index(ln, "/"+id+"/"); i >= 0 {
+			ln = strings.Repeat(" ", len(ln)-len(strings.TrimLeft(ln, " \t"))) + ln[i+len(id)+2:]
+		} else if strings.Contains(ln, ".go:") {
+			continue // frames in shared harness packages
 		}
 		keep = append(keep, ln)
 	}

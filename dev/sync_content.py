@@ -24,6 +24,6 @@ for ep, src in EPISODES.items():
     json.dump({"duration": tl["total"], "chapters": chapters}, open(os.path.join(out, "chapters.json"), "w"), ensure_ascii=False, indent=1)
     if "lab" in src:
         body = open(os.path.join(SRC, src["lab"])).read()
-        page = '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n</head>\n<body>\n' + body + '\n</body>\n</html>\n'
+        page = body if body.lstrip().lower().startswith('<!doctype') else '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n</head>\n<body>\n' + body + '\n</body>\n</html>\n'
         open(os.path.join(out, "lab.html"), "w").write(page)
     print(ep, sorted(os.listdir(out)))

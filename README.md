@@ -17,13 +17,15 @@
 
 课程首页按集组织，每一集分 5 步：看视频 → 读论文 → 玩实验台 → 练功房写代码 → 做真正的 MIT Lab。视频可以按章节跳着看，论文和 Lab 链接指向 MIT 课程官网，进度会自动记录在浏览器里。
 
-练功房里你的代码在 `workspace/mr/` 里，既可以在网页里写，也可以用 VS Code 打开这个文件夹编辑，两边会自动同步。
+练功房里你的代码在 `workspace/<练功房>/` 里（MapReduce 是 `workspace/mr/`），既可以在网页里写，也可以用 VS Code 打开这个文件夹编辑，两边会自动同步。
 
 ### 视频和实验台
 
 视频和实验台放在 `content/<集>/` 里，运行器在 `/content/` 下提供它们。视频文件较大，没有放进 git 仓库，会发布在 GitHub 的 Releases 页面：下载后放到对应的 `content/epNN/video.mp4` 即可。（作者制作新的一集后，用 `python3 dev/sync_content.py` 把成品复制进来。）
 
-## 7 关
+## 练功房
+
+### MapReduce（`mr`，第 1 集）
 
 | 关 | 内容 | 练什么 |
 |---|---|---|
@@ -50,16 +52,17 @@
 | 路径 | 内容 |
 |---|---|
 | `main.go` | 本地运行器：提供网页、读写代码文件、运行测试 |
+| `web/js/course.js` | 课程数据：每一集的步骤、链接、对应的练功房 |
 | `web/index.html`、`web/js/hub.js` | 课程首页：各集的学习步骤和课程地图 |
-| `web/dojo.html`、`web/js/app.js` | 练功房编辑器 |
+| `web/dojo.html`、`web/js/app.js` | 练功房编辑器（`dojo.html?d=mr`） |
+| `web/js/dojos/<练功房>.js` | 关卡讲解、分层提示、按失败原因给出的提示 |
 | `content/` | 各集的视频、章节和实验台 |
 | `dev/sync_content.py` | 把做好的视频和实验台复制进 `content/` |
-| `web/js/levels.js` | 关卡讲解、分层提示、按失败原因给出的提示 |
-| `course/testdata/dojo/` | 模拟集群（复制到 `workspace/dojo/`） |
-| `course/testdata/mr/starter/` | 初始代码 |
-| `course/testdata/mr/tests/` | 各关测试（每次运行前复制到 `workspace/mr/`） |
-| `course/testdata/mr/reference/` | 参考答案，**剧透**，做完再看 |
-| `dev/check.py` | 验证测试：参考答案全部通过，典型错误被对应的关卡抓到 |
+| `course/testdata/shared/dojo/` | MapReduce 的模拟集群（复制到 `workspace/dojo/`） |
+| `course/testdata/dojos/<练功房>/starter/` | 初始代码 |
+| `course/testdata/dojos/<练功房>/tests/` | 各关测试（每次运行前复制到 `workspace/<练功房>/`） |
+| `course/testdata/dojos/<练功房>/reference/` | 参考答案，**剧透**，做完再看 |
+| `dev/check.py`、`dev/mutations.py` | 验证测试：参考答案全部通过，初始代码不通过，典型错误被对应的关卡抓到 |
 
 运行 `python3 dev/check.py` 需要 `go` 在 PATH 里，全部跑完约 5 分钟。
 

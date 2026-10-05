@@ -1,6 +1,81 @@
-// 课程内容：每关的讲解、任务、分层提示，以及按失败原因给出的定向提示。
+// 练功房 mr 的课程内容：每关的讲解、任务、分层提示，以及按失败原因给出的定向提示。
+// 文件名 = 练功房 id = course/testdata/dojos/mr/ 目录名 = Go 包名。
+
+// 旧版本把进度存在 dojo.go-mr.*，搬到 dojo.mr.*，只搬一次。
+(() => { try { for (const k of ['level', 'passed', 'hints']){ const o = localStorage.getItem('dojo.go-mr.' + k); if (o != null && localStorage.getItem('dojo.mr.' + k) == null) localStorage.setItem('dojo.mr.' + k, o); } } catch {} })();
+
+/* MapReduce 时间线：每个 worker 一行，任务条按 Map/Reduce 分色，标出宕机、Done()，并点名卡住的任务。 */
+function wobble(x, y, w, h){
+  const r = Math.min(6, w / 2, h / 2);
+  return `M${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h - r} Q${x + w},${y + h} ${x + w - r},${y + h} H${x + r} Q${x},${y + h} ${x},${y + h - r} V${y + r} Q${x},${y} ${x + r},${y} Z`;
+}
+function renderTimeline(tlTest, {esc, width: W}){
+  const ev = tlTest.events;
+  const workers = [...new Set(ev.filter(e => e.k === 'spawn').map(e => e.w))].sort((a, b) => a - b);
+  const slow = Object.fromEntries(ev.filter(e => e.k === 'spawn').map(e => [e.w, e.slow]));
+  const tReal = Math.max(tlTest.t_end || 0, ...ev.map(e => e.t), 0.5), lastEv = Math.max(...ev.map(e => e.t), 0);
+  const tEnd = Math.min(tReal, Math.max(0.5, lastEv * 1.25 + 0.3)), quiet = tReal - tEnd > 1;
+  const L = 44, Rm = 10, top = 30, lane = 42, H = top + workers.length * lane + 26;
+  const X = t => L + (t / tEnd) * (W - L - Rm), Y = w => top + workers.indexOf(w) * lane + lane / 2;
+  const col = task => task[0] === 'M' ? 'var(--acc)' : ['var(--l1)', 'var(--l2)', 'var(--l3)', 'var(--l0)'][(+task.slice(1)) % 4];
+  let s = '';
+  const step = [0.1, 0.25, 0.5, 1, 2, 5, 10].find(x => tEnd / x <= 6) || 20;
+  for (let t = 0; t <= tEnd + 1e-9; t += step) s += `<text x="${X(t)}" y="${H - 6}" font-size="10.5" fill="var(--faint)" text-anchor="middle">${+t.toFixed(2)}s</text>`;
+  workers.forEach(w => {
+    const y = Y(w), sp = ev.find(e => e.k === 'spawn' && e.w === w);
+    s += `<text x="4" y="${y + 6}" font-size="12.5" font-weight="600" fill="var(--ink)">W${w}</text>`;
+    if (slow[w]) s += `<text x="4" y="${y + 18}" font-size="10" fill="var(--warn)">慢</text>`;
+    s += `<path d="M${X(sp ? sp.t : 0)},${y} L${X(tEnd)},${y}" stroke="var(--edge-2)" stroke-width="1.5" stroke-dasharray="2 5" fill="none"/>`;
+  });
+  ev.forEach((e, i) => {
+    if (e.k !== 'assign' || !/^[MR]\d+$/.test(e.task)) return;
+    let end = tEnd, how = 'open';
+    for (let j = i + 1; j < ev.length; j++){
+      const f = ev[j]; if (f.w !== e.w) continue;
+      if (f.k === 'report' && f.task === e.task){ end = f.t; how = 'done'; break; }
+      if (f.k === 'crash'){ end = f.t; how = 'crash'; break; }
+      if (f.k === 'assign'){ end = f.t; break; }
+    }
+    const x = X(e.t), w = Math.max(4, X(end) - x), y = Y(e.w), c = col(e.task);
+    s += `<g><title>${e.task} · W${e.w} · ${e.t.toFixed(2)}s → ${end.toFixed(2)}s${how === 'crash' ? '（宕机中断）' : how === 'done' ? '' : '（没有汇报完成）'}</title>
+      <path d="${wobble(x, y - 11, w, 22)}" fill="${c}" fill-opacity="${how === 'done' ? .18 : .06}" stroke="${c}" stroke-width="1.5" ${how !== 'done' ? 'stroke-dasharray="5 4"' : ''}/>
+      ${w > 22 ? `<text x="${x + 5}" y="${y + 6}" font-size="11" font-weight="600" fill="${c}">${e.task}</text>` : ''}</g>`;
+  });
+  ev.forEach(e => {
+    const x = X(e.t), y = e.w != null && workers.includes(e.w) ? Y(e.w) : 0;
+    if (e.k === 'crash') s += `<g stroke="var(--bad)" stroke-width="2.5" stroke-linecap="round"><title>W${e.w} 宕机 @ ${e.t}s</title><path d="M${x - 8},${y - 9} L${x + 7},${y + 8} M${x + 8},${y - 8} L${x - 7},${y + 9}"/></g>`;
+    if (e.k === 'exit') s += `<path d="M${x},${y - 11} L${x + 1},${y + 11}" stroke="var(--ink-2)" stroke-width="2.5" stroke-linecap="round"><title>W${e.w} 退出</title></path>`;
+    if (e.k === 'done') s += `<path d="M${x},${top - 16} L${x + 1},${H - 24}" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="6 4"/><text x="${x > W - 70 ? x - 4 : x + 4}" y="${top - 18}" font-size="11" font-weight="600" fill="var(--ok)" text-anchor="${x > W - 70 ? 'end' : 'start'}">Done()</text>`;
+  });
+  const desc = e => ({spawn: '启动' + (e.slow ? `（慢机器，慢 ${e.slow} 倍）` : ''), assign: e.task === 'wait' ? '收到 WaitTask' : e.task === 'exit' ? '收到 ExitTask' : `领到 ${e.task}`, report: `汇报完成 ${e.task}`, crash: '宕机', exit: '退出', done: 'Done() 返回 true', write: `开始直接写 ${e.f}`, wrote: `写完 ${e.f}`, rename: `rename → ${e.f}`, read: `读 ${e.f}`})[e.k] || e.k;
+  // name the stuck tasks: assigned, never reported, and why
+  const stuck = [];
+  if (!tlTest.ok){
+    const reported = new Set(ev.filter(e => e.k === 'report').map(e => e.task));
+    const lastAssign = {};
+    ev.forEach(e => { if (e.k === 'assign' && /^[MR]\d+$/.test(e.task)) lastAssign[e.task] = e; });
+    for (const [task, e] of Object.entries(lastAssign)){
+      if (reported.has(task)) continue;
+      const cr = ev.find(f => f.k === 'crash' && f.w === e.w && f.t >= e.t);
+      stuck.push(cr ? `${task} 在 ${e.t.toFixed(2)}s 分给了 W${e.w}，W${e.w} 在 ${cr.t.toFixed(2)}s 宕机，之后再也没有人重新领取 ${task}。` : `${task} 在 ${e.t.toFixed(2)}s 分给了 W${e.w}，一直没有汇报完成。`);
+    }
+  }
+  const list = ev.filter(e => !['read', 'wrote'].includes(e.k) && !(e.k === 'assign' && e.task === 'wait')).slice(0, 400);
+  return `<svg class="tl-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="worker 时间线">${s}</svg>
+    ${stuck.slice(0, 3).map(x => `<p class="tl-note">${esc(x)}</p>`).join('')}
+    ${quiet ? `<p class="tl-note">${lastEv.toFixed(2)}s 之后，直到 ${tReal.toFixed(1)}s 测试结束，再也没有任何动静。</p>` : ''}
+    ${!tlTest.ok ? `<p class="muted" style="color:var(--mute);font-size:12.5px">虚线框：领了任务却没有汇报完成。红叉：宕机。</p>` : ''}
+    <ol class="evlist">${list.map(e => `<li class="${e.k}"><span class="t">${e.t.toFixed(2)}s</span><span class="w">${e.w != null ? 'W' + e.w : ''}</span><span>${esc(desc(e))}</span></li>`).join('')}</ol>`;
+}
+
 window.COURSE = {
-  id: 'go-mr',
+  id: 'mr',
+  title: 'Go 练功房',
+  subtitle: 'MapReduce · 7 关',
+  fileOrder: ['warmup.go', 'mapreduce.go', 'worker.go', 'coordinator.go', 'rpc.go', 'common.go'],
+  finalNote: '7 关全部完成！现在可以去写真正的 MIT Lab 1 了。',
+  timelineIntro: '从第 4 关开始，测试运行在模拟集群里。这里会画出每个 worker 在什么时候领了什么任务、什么时候宕机。',
+  renderTimeline,
   levels: [
     {
       n: 1, short: 'goroutine', title: 'goroutine、WaitGroup 与锁', file: 'warmup.go',

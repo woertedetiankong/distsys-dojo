@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>分布式系统练功房</title>
-<meta name="description" content="MIT 6.5840 分布式系统自学路线：每一集按 看视频、读论文、玩实验台、练功房写代码、做真正的 Lab 五步走。">
+<meta name="description" content="MIT 6.5840 分布式系统自学路线：每一集按 看视频、读材料、玩实验台、练功房写代码、做真正的作业 五步走。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect x=%223%22 y=%223%22 width=%2226%22 height=%2226%22 rx=%226%22 fill=%22%23EEF0FF%22 stroke=%22%234F46E5%22 stroke-width=%223%22/%3E%3Cpath d=%22M10 17l4 4 8-10%22 fill=%22none%22 stroke=%22%234F46E5%22 stroke-width=%223.5%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
 </head>
 <body class="hub-body">
 <header class="hub-top">
-  <div class="brand"><b>分布式系统练功房</b><span class="scrawl">MIT 6.5840 自学路线</span></div>
+  <div class="brand"><b id="brand"></b><span class="scrawl" id="sub"></span></div>
   <div class="runner" id="runner"><span class="dot"></span><span id="runnerText">正在连接本地运行器…</span></div>
 </header>
 
@@ -23,15 +23,14 @@
   <section class="steps" id="steps" aria-label="学习步骤"></section>
 
   <section aria-labelledby="mapH">
-    <div class="sec-h"><h2 id="mapH">课程地图</h2><p>按 MIT 6.5840 的课表和 Lab 顺序排列，一集讲清一个核心机制。</p></div>
+    <div class="sec-h"><h2 id="mapH">课程地图</h2><p id="mapNote"></p></div>
     <div class="map" id="map"></div>
   </section>
 
-  <footer class="hub-foot">
-    <p>论文、讲义和 Lab 链接指向 MIT 6.5840 课程官网。这里的视频、实验台和练功房是自学用的辅助材料，题目和测试均为原创。如果你正在修这门课，请遵守课程的合作政策，独立完成 Lab。</p>
-  </footer>
+  <footer class="hub-foot"><p id="foot"></p></footer>
 </main>
 
+<script src="js/course.js"></script>
 <script src="js/hub.js"></script>
 </body>
 </html>

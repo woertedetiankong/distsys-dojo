@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Go 练功房</title>
+<title>练功房</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect x=%223%22 y=%223%22 width=%2226%22 height=%2226%22 rx=%226%22 fill=%22%23EEF0FF%22 stroke=%22%234F46E5%22 stroke-width=%223%22/%3E%3Cpath d=%22M10 17l4 4 8-10%22 fill=%22none%22 stroke=%22%234F46E5%22 stroke-width=%223.5%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,8 +15,8 @@
 <header class="top">
   <div class="brand">
     <a class="home" href="./">← 课程首页</a>
-    <b class="hl">Go 练功房</b>
-    <span class="scrawl">MapReduce · 7 关</span>
+    <b class="hl" id="dojoTitle">练功房</b>
+    <span class="scrawl" id="dojoSub"></span>
   </div>
   <div class="runner" id="runner"><span class="dot"></span><span id="runnerText">正在连接本地运行器…</span></div>
   <nav class="levels" id="levels" aria-label="关卡"></nav>
@@ -31,7 +31,7 @@
   <section class="col editor-col">
     <div class="card editor-card">
       <div class="tabs" id="tabs" role="tablist" aria-label="文件"></div>
-      <div class="editor-wrap"><textarea id="code" aria-label="Go 代码"></textarea></div>
+      <div class="editor-wrap"><textarea id="code" aria-label="代码"></textarea></div>
       <div class="editor-foot">
         <span class="saved" id="saved"></span>
         <button class="btn run" id="run" type="button">运行测试 <kbd>⌘↵</kbd></button>
@@ -48,8 +48,8 @@
 
 <div class="gate" id="gate" hidden>
   <div class="card">
-    <h1>请从课程首页进入</h1>
-    <p>在练功房目录下运行 <code>go run .</code>，打开它打印出来的链接，再从课程首页进入练功房。链接里带着一次性的口令，用来防止其他网页偷偷调用你电脑上的运行器。</p>
+    <h1 id="gateH">请从课程首页进入</h1>
+    <p id="gateP">在课程目录下运行 <code>go run .</code>，打开它打印出来的链接，再从课程首页进入练功房。链接里带着一次性的口令，用来防止其他网页偷偷调用你电脑上的运行器。</p>
   </div>
 </div>
 
@@ -58,7 +58,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
-<script src="js/levels.js"></script>
-<script src="js/app.js"></script>
+<script>
+// Load this dojo's levels (js/dojos/<id>.js), then the shared workbench.
+(() => {
+  const id = new URLSearchParams(location.search).get('d') || '';
+  const add = src => new Promise((ok, bad) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = bad; document.body.append(s); });
+  if (!/^[a-z][a-z0-9_]*$/.test(id)){ document.getElementById('gate').hidden = false; document.getElementById('gateH').textContent = '没有指定练功房'; return; }
+  add(`js/dojos/${id}.js`).then(() => add('js/app.js')).catch(() => { document.getElementById('gate').hidden = false; document.getElementById('gateH').textContent = `找不到练功房 ${id}`; document.getElementById('gateP').textContent = `需要 web/js/dojos/${id}.js 和 course/testdata/dojos/${id}/。`; });
+})();
+</script>
 </body>
 </html>

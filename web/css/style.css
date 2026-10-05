@@ -1,5 +1,5 @@
 /* Layout: a bento workbench. Lesson and hints, the code editor, and results + timeline sit as
-   white rounded tiles on a quiet grey ground; color is reserved for state. Same system as the MapReduce lab page. */
+   white rounded tiles on a quiet grey ground; color is reserved for state. Same system as every lab page in the course. */
 :root{
   --bg:#F2F2F0; --tile:#FFFFFF; --soft:#F5F5F3; --soft-2:#FAFAF9; --edge:#E4E4E1; --edge-2:#D6D6D2;
   --ink:#141414; --ink-2:#3F3F46; --mute:#6E6E73; --faint:#A1A1A6;
@@ -55,7 +55,7 @@ code{font:12.5px var(--f-mono); background:var(--soft); border-radius:5px; paddi
 .runner.ok{color:var(--ok)}
 .runner.bad{color:var(--bad); background:var(--bad-soft); border-color:transparent}
 .levels{flex-basis:100%; display:flex; gap:8px; padding:8px 0 2px; overflow-x:auto; scrollbar-width:none}
-.lv{flex:1 1 0; min-width:116px; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:10px 14px; border:1px solid var(--edge); border-radius:16px; background:var(--tile); cursor:pointer; font:600 14px var(--f-sans); color:var(--ink); text-align:left; transition:background .15s, box-shadow .15s}
+.lv{flex:1 1 0; min-width:116px; max-width:240px; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:10px 14px; border:1px solid var(--edge); border-radius:16px; background:var(--tile); cursor:pointer; font:600 14px var(--f-sans); color:var(--ink); text-align:left; transition:background .15s, box-shadow .15s}
 .lv:hover{background:var(--soft-2)}
 .lv .n{font:500 12px/1.2 var(--f-mono); color:var(--faint)}
 .lv.done .n{color:var(--ok)}
@@ -169,7 +169,7 @@ pre.box{margin:0; font:12px/1.55 var(--f-mono); background:var(--soft-2); border
 .tl-svg text{font-family:var(--f-mono)}
 .tl-note{font:500 13px/1.5 var(--f-sans); color:var(--bad); padding:9px 12px; border-radius:10px; background:var(--bad-soft)}
 .evlist{list-style:none; margin:0; padding:0; max-height:200px; overflow:auto; font-size:12.5px}
-.evlist li{display:grid; grid-template-columns:54px 32px minmax(0,1fr); gap:6px; padding:5px 0; border-top:1px solid var(--edge)}
+.evlist li{display:grid; grid-template-columns:54px 56px minmax(0,1fr); gap:6px; padding:5px 0; border-top:1px solid var(--edge)}
 .evlist li:first-child{border-top:0}
 .evlist .t{font-family:var(--f-mono); color:var(--faint)}
 .evlist .w{font:500 12px/1.5 var(--f-mono)}
