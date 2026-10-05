@@ -10,6 +10,7 @@ SRC = os.path.dirname(ROOT)
 EPISODES = {
     "ep00": {"video": "distributed-systems-explainer.mp4", "timeline": "explainer-video/timeline.json"},
     "ep01": {"video": "ep01-mapreduce.mp4", "timeline": "ep01-mapreduce/timeline.json", "lab": "ep01-mapreduce/lab.html"},
+    "ep02": {"video": "ep02-rpc/video.mp4", "timeline": "ep02-rpc/timeline.json", "lab": "ep02-rpc/lab.html"},
 }
 
 for ep, src in EPISODES.items():

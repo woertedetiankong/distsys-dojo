@@ -1,0 +1,69 @@
+// 练功房自动生成的测试文件，每次运行都会覆盖，不要修改。
+package kv
+
+import (
+	"fmt"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"testing"
+)
+
+// Many goroutines increment one counter with get-then-conditional-put, retrying on ErrVersion.
+// With versions this is a correct counter — as long as the server itself is safe for concurrent use.
+func TestLv2_ConcurrentCounter(t *testing.T) {
+	s := NewServer()
+	sput(s, "n", "0", 0)
+	const G, each = 8, 25
+	var wg sync.WaitGroup
+	var stuck atomic.Bool
+	for g := 0; g < G; g++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < each && !stuck.Load(); i++ {
+				for try := 0; ; try++ {
+					r := sget(s, "n")
+					v, _ := strconv.Atoi(r.Value)
+					if sput(s, "n", strconv.Itoa(v+1), r.Version) == OK {
+						break
+					}
+					if try > 20000 {
+						stuck.Store(true)
+						return
+					}
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	if stuck.Load() {
+		fail(t, "put_never_ok", "用刚读到的版本号 Put，试了两万次都没有返回 OK。先确认第 1 关已经通过。")
+	}
+	r := sget(s, "n")
+	if r.Value != strconv.Itoa(G*each) || r.Version != G*each+1 {
+		fail(t, "lost_update", fmt.Sprintf("%d 个 goroutine 各加 %d 次，计数应该是 %d（版本 %d），你的是 %s（版本 %d）。两个 Put 同时检查版本号、同时写入，就会有一次修改被覆盖。", G, each, G*each, G*each+1, r.Value, r.Version))
+	}
+}
+
+func TestLv2_ManyKeys(t *testing.T) {
+	s := NewServer()
+	var wg sync.WaitGroup
+	for g := 0; g < 8; g++ {
+		wg.Add(1)
+		go func(g int) {
+			defer wg.Done()
+			for i := 0; i < 50; i++ {
+				k := fmt.Sprintf("k%d-%d", g, i)
+				sput(s, k, "v", 0)
+				sget(s, k)
+			}
+		}(g)
+	}
+	wg.Wait()
+	for g := 0; g < 8; g++ {
+		if r := sget(s, fmt.Sprintf("k%d-49", g)); r.Err != OK || r.Version != 1 {
+			fail(t, "lost_update", fmt.Sprintf("goroutine %d 写入的键丢了或者版本不对：(%q, %d, %q)。", g, r.Value, r.Version, r.Err))
+		}
+	}
+}

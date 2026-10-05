@@ -1,6 +1,6 @@
 # 分布式系统练功房
 
-在浏览器里写 Go，一关一关实现 MapReduce。代码保存在你电脑上的真实文件里，测试用真正的 `go test -race` 运行。灵感来自 MIT 6.5840（6.824）分布式系统课程的 Lab 1，题目、测试和代码均为原创。
+在浏览器里写 Go，一关一关实现 MapReduce 和带版本号的键值服务器。代码保存在你电脑上的真实文件里，测试用真正的 `go test -race` 运行。灵感来自 MIT 6.5840（6.824）分布式系统课程的 Lab 1，题目、测试和代码均为原创。
 
 ## 开始
 
@@ -39,6 +39,20 @@
 
 从第 4 关开始，代码运行在一个模拟集群里：worker 是真正的 goroutine，网络和文件系统由测试模拟，可以让 worker 宕机或变慢，思路和 MIT 的 labrpc 相同。为了让测试跑得快，超时阈值是 2 秒（真实 Lab 1 是 10 秒）。
 
+### KV 服务器（`kv`，第 2 集）
+
+| 关 | 内容 | 练什么 |
+|---|---|---|
+| 1 | 带版本号的 Get 和 Put | 版本号对上才写入，写入后加一 |
+| 2 | 同时到来的请求 | 处理函数加锁，`-race` |
+| 3 | Clerk | 把调用变成 RPC |
+| 4 | 重试 | 消息会丢，失败后 sleep 再重发 |
+| 5 | ErrMaybe | 重发过的 Put 被拒绝时，可能已经执行过了 |
+| 6 | 用 Put 做一把锁 | 锁空着才写入自己的 id |
+| 7 | 不可靠网络上的锁 | 收到 ErrMaybe 后读回来确认 |
+
+测试跑在 `course/testdata/shared/netsim/` 这个模拟网络上：它能随机丢消息，也能精确地丢掉某个客户端的第 n 个请求或回复，思路和 MIT 的 labrpc 相同。
+
 ## 安全
 
 运行器会在你的电脑上编译、运行代码，所以它：
@@ -59,6 +73,7 @@
 | `content/` | 各集的视频、章节和实验台 |
 | `dev/sync_content.py` | 把做好的视频和实验台复制进 `content/` |
 | `course/testdata/shared/dojo/` | MapReduce 的模拟集群（复制到 `workspace/dojo/`） |
+| `course/testdata/shared/netsim/` | KV 练功房的模拟网络（复制到 `workspace/netsim/`） |
 | `course/testdata/dojos/<练功房>/starter/` | 初始代码 |
 | `course/testdata/dojos/<练功房>/tests/` | 各关测试（每次运行前复制到 `workspace/<练功房>/`） |
 | `course/testdata/dojos/<练功房>/reference/` | 参考答案，**剧透**，做完再看 |

@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RPC 实验台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: a bento box. Every block is a white tile on a quiet grey ground; color is reserved for state. */
+:root{
+  --bg:#F2F2F0; --tile:#FFFFFF; --soft:#F5F5F3; --soft-2:#FAFAF9; --edge:#E4E4E1; --edge-2:#D6D6D2;
+  --ink:#141414; --ink-2:#3F3F46; --mute:#6E6E73; --faint:#A1A1A6;
+  --acc:#4F46E5; --acc-soft:#EEF0FF; --on-acc:#FFFFFF;
+  --ok:#16A34A; --ok-soft:#ECFDF3; --bad:#DC2626; --bad-soft:#FEF2F2; --warn:#B45309; --warn-soft:#FEF3C7;
+  --l0:#4F46E5; --l1:#D97706; --l2:#059669; --l3:#DB2777;
+  --shadow:0 1px 2px rgba(20,20,20,.04);
+  --f-sans:"Geist","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Geist Mono","SFMono-Regular",Menlo,Consolas,"Noto Sans SC",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0B0B0C; --tile:#161618; --soft:#1D1D20; --soft-2:#1A1A1D; --edge:#26262A; --edge-2:#34343A;
+  --ink:#EDEDEF; --ink-2:#C9C9CF; --mute:#9A9AA2; --faint:#6B6B73;
+  --acc:#8B85FF; --acc-soft:#22213A; --on-acc:#0B0B0C;
+  --ok:#4ADE80; --ok-soft:#13261A; --bad:#F87171; --bad-soft:#2A1414; --warn:#FBBF24; --warn-soft:#2A2110;
+  --l0:#8B85FF; --l1:#FBBF24; --l2:#34D399; --l3:#F472B6;
+  --shadow:none; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0B0B0C; --tile:#161618; --soft:#1D1D20; --soft-2:#1A1A1D; --edge:#26262A; --edge-2:#34343A;
+  --ink:#EDEDEF; --ink-2:#C9C9CF; --mute:#9A9AA2; --faint:#6B6B73;
+  --acc:#8B85FF; --acc-soft:#22213A; --on-acc:#0B0B0C;
+  --ok:#4ADE80; --ok-soft:#13261A; --bad:#F87171; --bad-soft:#2A1414; --warn:#FBBF24; --warn-soft:#2A2110;
+  --l0:#8B85FF; --l1:#FBBF24; --l2:#34D399; --l3:#F472B6;
+  --shadow:none; color-scheme:dark; }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 var(--f-sans); -webkit-font-smoothing:antialiased}
+.wrap{max-width:1320px; margin:0 auto; padding-inline:20px; padding-block:36px 72px; display:flex; flex-direction:column; gap:44px}
+h1,h2,h3{margin:0; text-wrap:balance}
+p{margin:0}
+button,select,input,textarea{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--acc); outline-offset:2px}
+code{font:12.5px var(--f-mono); background:var(--soft); border-radius:6px; padding:1px 6px}
+
+/* ---------- header ---------- */
+.hero{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:16px; align-items:stretch}
+.hero > div:first-child{background:var(--tile); border:1px solid var(--edge); border-radius:22px; padding:28px 30px; display:flex; flex-direction:column; justify-content:flex-end}
+.eyebrow{font:500 13px var(--f-mono); color:var(--acc)}
+.home{align-self:flex-start; margin-bottom:14px; font:500 13px var(--f-sans); color:var(--mute); text-decoration:none; padding:6px 12px; border-radius:10px; background:var(--soft)}
+.home:hover{color:var(--ink)}
+.hero h1{font:600 clamp(36px,5vw,56px)/1.05 var(--f-sans); letter-spacing:-.03em; margin-top:10px}
+.lead{margin-top:14px; max-width:36em; color:var(--mute); font-size:15.5px; text-wrap:pretty}
+.path{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
+.path li{background:var(--tile); border:1px solid var(--edge); border-radius:18px; padding:16px 18px; font-size:13px; color:var(--mute); line-height:1.45; display:flex; flex-direction:column; gap:4px; min-width:0}
+.path li::before{content:attr(data-n); font:500 12px var(--f-mono); color:var(--faint)}
+.path li b{font-size:16px; font-weight:600; color:var(--ink)}
+.path li.here{background:var(--acc-soft); border-color:transparent}
+.path li.here b,.path li.here::before{color:var(--acc)}
+
+/* ---------- section heads + analogy ---------- */
+.sec-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:16px}
+.sec-head h2{font:600 26px/1.2 var(--f-sans); letter-spacing:-.02em}
+.sec-head p{color:var(--mute); max-width:46em}
+.ana-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px}
+.ana{background:var(--tile); border:1px solid var(--edge); border-radius:18px; padding:14px 16px; display:flex; flex-direction:column; gap:4px; min-width:0}
+.ana b{font:600 16px var(--f-sans)}
+.ana span{font:500 12px var(--f-mono); color:var(--acc); overflow-wrap:anywhere}
+.ana p{font-size:13.5px; color:var(--mute); line-height:1.55; margin-top:2px}
+
+/* ---------- control bar ---------- */
+.lab{display:flex; flex-direction:column; gap:14px}
+.bar{display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px; padding:10px 12px; background:var(--tile); border:1px solid var(--edge); border-radius:20px; position:sticky; top:env(safe-area-inset-top,0px); z-index:5; box-shadow:0 6px 20px -14px rgba(20,20,20,.25)}
+.btn{border:0; background:var(--soft); border-radius:12px; padding:9px 15px; cursor:pointer; font-weight:500; font-size:14px; white-space:nowrap; transition:background .15s}
+.btn:hover{background:var(--edge)}
+.btn.primary{background:var(--ink); color:var(--bg); min-width:92px}
+.btn.primary:hover{opacity:.88; background:var(--ink)}
+.seg{display:inline-flex; background:var(--soft); border-radius:12px; padding:3px; gap:2px}
+.seg button{border:0; background:none; border-radius:9px; padding:6px 10px; cursor:pointer; font:500 12.5px var(--f-mono); color:var(--mute)}
+.seg button.on{background:var(--tile); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.clock{margin-left:auto; display:flex; align-items:center; gap:12px; font-variant-numeric:tabular-nums}
+.clock .t{font:600 26px/1 var(--f-mono); letter-spacing:-.02em}
+.clock .t small{font-size:13px; color:var(--mute); font-weight:400}
+.phase{font:500 12.5px/1 var(--f-sans); padding:7px 11px; border-radius:999px; background:var(--soft); color:var(--mute)}
+.phase.run{background:var(--acc-soft); color:var(--acc)}
+.phase.done{background:var(--ok-soft); color:var(--ok)}
+
+/* ---------- settings ---------- */
+.settings{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px}
+.settings > div{background:var(--tile); border:1px solid var(--edge); border-radius:22px; padding:18px; display:flex; flex-direction:column; gap:6px; min-width:0}
+.lbl{font:500 12.5px/1.3 var(--f-sans); color:var(--mute)}
+select{border:1px solid var(--edge); background:var(--soft-2); border-radius:10px; padding:8px 10px; width:100%}
+.switch{display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer}
+.switch span{display:flex; flex-direction:column; line-height:1.35; font-weight:500; font-size:14px}
+.switch small{color:var(--mute); font-size:12.5px; font-weight:400}
+.switch input{appearance:none; width:40px; height:24px; border-radius:12px; background:var(--edge-2); position:relative; cursor:pointer; flex:none; transition:background .15s; margin:0}
+.switch input::after{content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2); transition:transform .15s}
+.switch input:checked{background:var(--acc)}
+.switch input:checked::after{transform:translateX(16px)}
+.script{font-size:13px; padding:8px 12px; border-radius:10px; background:var(--warn-soft); color:var(--warn)}
+
+/* ---------- log + verdict ---------- */
+.below{display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:14px}
+.panel{background:var(--tile); border:1px solid var(--edge); border-radius:22px; padding:18px 20px; min-width:0}
+.panel-h{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px}
+.panel-h h3,.panel > h3{font:600 14px/1.3 var(--f-sans); margin:0}
+.log{list-style:none; margin:0; padding:0; max-height:300px; overflow:auto; display:flex; flex-direction:column}
+.log li{display:grid; grid-template-columns:58px 56px minmax(0,1fr); gap:10px; padding:7px 0; border-top:1px solid var(--edge); font-size:13.5px; line-height:1.5}
+.log li:first-child{border-top:0}
+.log .lt{font:400 12px/1.9 var(--f-mono); color:var(--faint); font-variant-numeric:tabular-nums}
+.log .lw{font:400 12px/1.9 var(--f-sans); color:var(--mute)}
+.log li.k-ok .lx{color:var(--ok)} .log li.k-bad .lx{color:var(--bad)} .log li.k-warn .lx{color:var(--warn)}
+.verdict{display:flex; flex-direction:column; gap:10px}
+.verdict .big{font:600 24px/1.2 var(--f-sans); letter-spacing:-.02em}
+.verdict .big.ok{color:var(--ok)} .verdict .big.bad{color:var(--bad)}
+.verdict p{color:var(--ink-2); font-size:14px}
+
+/* ---------- predict, then verify ---------- */
+.qs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px}
+.q{background:var(--tile); border:1px solid var(--edge); border-radius:22px; padding:22px; display:flex; flex-direction:column; gap:12px; min-width:0}
+.q .qn{font:500 12.5px var(--f-mono); color:var(--acc)}
+.q h3{font:600 19px/1.3 var(--f-sans); letter-spacing:-.01em}
+.q .setup{color:var(--mute); font-size:14px}
+.q .ask{font-weight:600}
+.opts{display:flex; flex-direction:column; gap:8px}
+.opt{text-align:left; border:1px solid transparent; background:var(--soft); border-radius:12px; padding:10px 13px; cursor:pointer; font-size:14px; line-height:1.45; transition:background .15s, border-color .15s}
+.opt:hover:not(:disabled){background:var(--edge)}
+.opt:disabled{cursor:default}
+.opt.right{background:var(--ok-soft); border-color:var(--ok)}
+.opt.wrong{background:var(--bad-soft); border-color:var(--bad)}
+.ans{display:flex; flex-direction:column; gap:12px; padding-top:12px; border-top:1px solid var(--edge); font-size:14px; color:var(--ink-2)}
+.ans .res{font-weight:600} .ans .res.ok{color:var(--ok)} .ans .res.bad{color:var(--bad)}
+.ans .btn{align-self:flex-start}
+
+/* ---------- mapping table ---------- */
+.tbl-wrap{overflow-x:auto; background:var(--tile); border:1px solid var(--edge); border-radius:22px}
+table.map{width:100%; border-collapse:collapse; min-width:760px; font-size:14px}
+table.map th{text-align:left; font:500 12.5px var(--f-sans); color:var(--mute); padding:14px 18px; border-bottom:1px solid var(--edge)}
+table.map td{padding:13px 18px; border-bottom:1px solid var(--edge); vertical-align:top; line-height:1.55}
+table.map tr:last-child td{border-bottom:0}
+table.map td:first-child{font-weight:600; white-space:nowrap}
+table.map td.trap{color:var(--bad)}
+footer{font-size:13px; color:var(--faint); border-top:1px solid var(--edge); padding-top:18px}
+
+@media (max-width:1100px){ .settings{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} .stage{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:760px){
+  .hero,.below,.qs,.settings{grid-template-columns:minmax(0,1fr)}
+  .clock{margin-left:0; width:100%; justify-content:space-between}
+  .bar{position:static}
+  .log li{grid-template-columns:52px minmax(0,1fr)} .log .lw{display:none}
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
+/* ---------- stage: clients · network · server ---------- */
+.stage{display:grid; grid-template-columns:minmax(200px,240px) minmax(0,1fr) minmax(240px,300px); gap:14px; align-items:stretch}
+.stage > .col{background:var(--tile); border:1px solid var(--edge); border-radius:22px; padding:16px; display:flex; flex-direction:column; gap:10px; min-width:0}
+.col > h3{font:600 14px/1.3 var(--f-sans); display:flex; justify-content:space-between; gap:8px}
+.col > h3 em{font:400 12px var(--f-mono); color:var(--mute); font-style:normal}
+.cli{padding:12px 14px; border-radius:16px; background:var(--soft-2); display:flex; flex-direction:column; gap:6px; min-height:104px; transition:background .2s, box-shadow .2s}
+.cli .top{display:flex; align-items:center; gap:8px}
+.cli .name{font:600 17px/1 var(--f-mono)}
+.cli .tries{margin-left:auto; font:500 11.5px var(--f-mono); color:var(--warn)}
+.cli .status{font-size:13.5px; color:var(--ink-2); min-height:1.4em}
+.cli .res{align-self:flex-start; font:600 12.5px/1 var(--f-mono); padding:6px 9px; border-radius:999px; background:var(--soft)}
+.cli .res.ok{background:var(--ok-soft); color:var(--ok)} .cli .res.bad{background:var(--bad-soft); color:var(--bad)} .cli .res.maybe{background:var(--warn-soft); color:var(--warn)}
+.cli.wait{box-shadow:inset 0 0 0 1.5px var(--acc); background:var(--tile)}
+.cli.held{box-shadow:inset 0 0 0 1.5px var(--ok); background:var(--ok-soft)}
+.lanes{display:flex; flex-direction:column; gap:10px}
+.lane{position:relative; min-height:104px; border-radius:16px; background:var(--soft-2); overflow:hidden}
+.lane::before{content:""; position:absolute; left:14px; right:14px; top:50%; border-top:1.5px dashed var(--edge-2)}
+.lane .lbl2{position:absolute; left:14px; top:8px; font:400 11px var(--f-mono); color:var(--faint)}
+.msg{position:absolute; transform:translate(-50%,-50%); display:flex; align-items:center; gap:6px; font:600 11.5px/1 var(--f-mono); white-space:nowrap; padding:5px 8px; border-radius:999px; background:var(--tile); box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.msg i{width:8px; height:8px; border-radius:50%; background:currentColor; flex:none}
+.msg.req{color:var(--acc); top:34%} .msg.rep{color:var(--ok); top:68%} .msg.rep.err{color:var(--warn)}
+.msg.lost{color:var(--bad); background:var(--bad-soft); box-shadow:none; opacity:.9}
+.msg.lost i{background:none; width:auto; height:auto}
+.srv{display:flex; flex-direction:column; gap:10px}
+.srv table{width:100%; border-collapse:collapse; font:13.5px var(--f-mono)}
+.srv th{text-align:left; font:500 11.5px var(--f-mono); color:var(--mute); padding:6px 8px; border-bottom:1px solid var(--edge)}
+.srv td{padding:8px; border-bottom:1px solid var(--edge); overflow-wrap:anywhere}
+.srv td.ver{color:var(--warn); font-weight:600}
+.srv tr.flash td{animation:fresh 1.2s}
+.srv .empty{color:var(--faint); font-size:13px}
+.execs{display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--ink-2)}
+.execs b{font:600 13px var(--f-mono)}
+.execs .dup{color:var(--bad)}
+@keyframes fresh{from{background:var(--acc-soft)}to{background:transparent}}
+.lbl{font:500 12.5px/1.3 var(--f-sans); color:var(--mute)}
+.settings .row2{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+.switch + .switch{margin-top:10px}
+@media (max-width:1100px){ .stage{grid-template-columns:minmax(150px,200px) minmax(0,1fr)} .stage .srvcol{grid-column:1/-1} }
+@media (max-width:760px){ .stage{grid-template-columns:minmax(0,1fr)} .lanes .lane{min-height:70px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <a class="home" id="homeLink" href="/" hidden>← 课程首页</a>
+      <p class="eyebrow">MIT 6.5840 分布式系统 · 第 2 集 · 交互实验</p>
+      <h1>RPC 实验台</h1>
+      <p class="lead">视频讲了消息丢失时会发生什么，这一页让你亲手制造丢失：弄丢一封信、一封回信，或者关掉重试，看看档案室里的记录会不会多写一遍，客户端拿到的答复是不是实话。</p>
+    </div>
+    <ol class="path" aria-label="学习顺序">
+      <li data-n="01"><b>看视频</b>建立直觉</li>
+      <li data-n="02"><b>读讲义</b>l-rpc.txt 与 kv.go</li>
+      <li data-n="03" class="here"><b>做实验</b>就是这一页</li>
+      <li data-n="04"><b>写 Lab 2</b>server.go、client.go 与锁</li>
+    </ol>
+  </header>
+
+  <section aria-labelledby="ana-h">
+    <div class="sec-head"><h2 id="ana-h">先看懂这个比喻</h2><p>几个人靠写信请档案室办事，邮局偶尔会把信弄丢。页面上的每个术语，都对应这个场景里的一样东西。</p></div>
+    <div class="ana-grid">
+      <div class="ana"><b>寄信人</b><span>Client · Clerk</span><p>写信请档案室办事，然后等回信。等太久就再寄一封一模一样的。</p></div>
+      <div class="ana"><b>档案室</b><span>KV Server</span><p>按信办事，每份档案都有一个修订号。同一时间可能收到好几封信，要一封一封地办（加锁）。</p></div>
+      <div class="ana"><b>信和回信</b><span>Request · Reply</span><p>都可能在路上丢掉。寄信人只知道「没等到回信」，不知道丢的是哪一封。</p></div>
+      <div class="ana"><b>修订号</b><span>Version</span><p>改档案时要写明「我看到的是第几版」。版本对不上，档案室就拒绝修改（ErrVersion）。</p></div>
+      <div class="ana"><b>「可能办成了」</b><span>ErrMaybe</span><p>重寄的信被拒绝时，寄信人说不清第一封有没有办成，只能如实这样回答。</p></div>
+    </div>
+  </section>
+
+  <section class="lab" id="lab" aria-labelledby="lab-h">
+    <div class="sec-head"><h2 id="lab-h">模拟器</h2><p>选好模式和要丢的消息，按「播放」。丢失的信会在路上变成红色的 ✕。改动参数后会自动重新开始。</p></div>
+
+    <div class="bar" role="toolbar" aria-label="播放控制">
+      <button class="btn primary" id="play" type="button">播放</button>
+      <button class="btn" id="step" type="button">单步 +0.5 秒</button>
+      <button class="btn" id="reset" type="button">重置</button>
+      <div class="seg" id="speed" role="group" aria-label="速度"><button type="button" data-s="0.5">0.5×</button><button type="button" data-s="1" class="on">1×</button><button type="button" data-s="2">2×</button><button type="button" data-s="4">4×</button></div>
+      <div class="clock"><span class="phase" id="phase">准备</span><span class="t" id="clock">0.0 <small>秒</small></span></div>
+    </div>
+
+    <div class="settings">
+      <div>
+        <label class="lbl" for="optMode">客户端要做的事</label>
+        <select id="optMode">
+          <option value="append">追加：Append(k, 自己的字母)，不带版本号</option>
+          <option value="version" selected>带版本号的 Put：先 Get，再 Put(k, 自己的名字, 看到的版本)</option>
+          <option value="lock">锁：用带版本号的 Put 加锁，拿到后持有 2 秒再解锁</option>
+        </select>
+        <div class="row2" style="margin-top:10px">
+          <div><label class="lbl" for="optN">客户端数</label><select id="optN"><option>1</option><option selected>2</option><option>3</option></select></div>
+          <div><label class="lbl" for="optLoss">随机丢失率</label><select id="optLoss"><option value="0" selected>0%</option><option value="0.2">20%</option><option value="0.4">40%</option></select></div>
+        </div>
+      </div>
+      <div>
+        <label class="lbl" for="optDrop">指定丢掉一条消息</label>
+        <select id="optDrop">
+          <option value="">不指定</option>
+          <option value="req:1">C1 的第 1 封信（请求）</option>
+          <option value="rep:1">C1 收到的第 1 封回信</option>
+          <option value="req:2">C1 的第 2 封信（请求）</option>
+          <option value="rep:2" selected>C1 收到的第 2 封回信</option>
+        </select>
+        <p class="consts" style="font-size:12.5px;color:var(--mute);margin-top:10px">信在路上走 0.8 秒。寄出 2 秒还没收到回信，就重寄一封（Lab 2 里是 RPC 调用失败后等 100 毫秒再重发）。</p>
+        <p class="script" id="script" hidden></p>
+      </div>
+      <div>
+        <label class="switch" for="optRetry"><span>重试<small>等不到回信就重寄</small></span><input type="checkbox" id="optRetry" checked></label>
+        <label class="switch" for="optMaybe"><span>ErrMaybe 规则<small>重寄过的 Put 被拒绝时，回答「可能办成了」</small></span><input type="checkbox" id="optMaybe" checked></label>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="col"><h3>客户端 <em>寄信人</em></h3><div class="lanes" id="clients"></div></div>
+      <div class="col"><h3>网络 <em>上面是信，下面是回信</em></h3><div class="lanes" id="lanes"></div></div>
+      <div class="col srvcol"><h3>服务器 <em>档案室</em></h3><div class="srv" id="srv"></div></div>
+    </div>
+
+    <div class="below">
+      <div class="panel"><div class="panel-h"><h3>事件日志</h3><div class="seg" id="talk" role="group" aria-label="说法"><button type="button" data-m="plain">大白话</button><button type="button" data-m="term">术语</button></div></div><ol class="log" id="log"></ol></div>
+      <div class="panel verdict" id="verdict"><h3>结果校验</h3><p>所有客户端结束后，这里会核对两件事：每个操作实际执行了几次，以及每个客户端拿到的答复是不是实话。</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="qs-h">
+    <div class="sec-head"><h2 id="qs-h">先预测，再验证</h2><p>每道题先凭直觉选一个答案，再在模拟器里运行同样的场景，看看你猜得对不对。猜错的题最有收获。</p></div>
+    <div class="qs" id="qs"></div>
+  </section>
+
+  <section aria-labelledby="map-h">
+    <div class="sec-head"><h2 id="map-h">对照 Lab 2</h2><p>模拟器里看到的每个机制，在 Lab 2 里都要你自己写出来。</p></div>
+    <div class="tbl-wrap"><table class="map">
+      <thead><tr><th>模拟器里的现象</th><th>Lab 2 里你要写的</th><th>常见的坑</th></tr></thead>
+      <tbody>
+        <tr><td>版本号对上才修改</td><td><code>server.go</code>：每个键存 value 和 version；Put 的版本号相等才写入并加一，否则返回 <code>ErrVersion</code>；版本号大于 0 而键不存在时返回 <code>ErrNoKey</code>。</td><td class="trap">版本号对不上也照写，或者忘了加一</td></tr>
+        <tr><td>多封信同时到达</td><td>Get 和 Put 的处理函数用同一把 <code>sync.Mutex</code> 保护整个 map。</td><td class="trap">只给 Put 加锁，Get 读到写了一半的状态，<code>-race</code> 报错</td></tr>
+        <tr><td>等不到回信就重寄</td><td><code>client.go</code>：<code>ck.clnt.Call</code> 返回 false 就 <code>time.Sleep(100 * time.Millisecond)</code> 再发，直到收到回复。</td><td class="trap">只发一次；或者不 sleep，疯狂重发</td></tr>
+        <tr><td>「可能办成了」</td><td>记住这个 Put 是否重发过：重发过又收到 <code>ErrVersion</code> 就返回 <code>ErrMaybe</code>；第一次就收到 <code>ErrVersion</code> 则如实返回 <code>ErrVersion</code>。</td><td class="trap">总是返回 ErrVersion，或者总是返回 ErrMaybe</td></tr>
+        <tr><td>锁</td><td><code>lock/lock.go</code>：Acquire 循环读锁的键，空着就带版本号写入自己的 id；收到 <code>ErrMaybe</code> 就再读一次看是不是自己的 id。Release 写回空值。</td><td class="trap">收到 ErrMaybe 就当作没拿到，结果自己把自己锁在门外</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note" style="margin-top:12px;font-size:13.5px;color:var(--mute);max-width:62em">模拟器把时间放慢了：信走 0.8 秒、等 2 秒重寄，方便看清楚。Lab 2 的服务器不记录任何客户端的信息，版本号就是它防止重复执行的全部手段，这里也一样。</p>
+  </section>
+
+  <footer>参考：MIT 6.5840 第 2 讲 RPC and Threads（l-rpc.txt、kv.go、crawler.go）· Lab 2 Key/Value Server。模拟器、比喻和题目均为原创。</footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EP = 'ep02';
+const K = {LAT: 0.8, RETRY: 2, HOLD: 2, LIMIT: 40};   // story seconds: one-way latency, resend after, lock hold time, give up
+
+/* ---------------- engine: pure and deterministic ----------------
+   Each client runs a generator program. `yield* call(c, body)` sends an RPC and resumes with the reply;
+   with retry on it resends every K.RETRY seconds (same rpc id, so a late reply to any copy counts).
+   Message loss is decided when a message is sent: a scripted drop (cfg.drop = {dir, nth} for C1's nth
+   request/reply) or random loss from a seeded hash, so the same settings always replay the same run. */
+const hash = i => { const x = Math.sin(i*127.1 + 311.7)*43758.5453; return x - Math.floor(x); };
+function init(cfg){
+  const sim = {cfg, t: 0, msgs: [], log: [], seq: 0, data: {}, execs: {}, holders: [], maxHold: 0, flash: null, doneAt: null,
+    clients: Array.from({length: cfg.n}, (_, i) => ({i, name: 'C' + (i + 1), status: '准备', res: null, tries: 0, wait: null, done: false, sent: {req: 0, rep: 0}, held: false}))};
+  if (cfg.mode !== 'append') sim.data[cfg.mode === 'lock' ? 'lock' : 'k'] = {v: cfg.mode === 'lock' ? '' : 'init', ver: 1};
+  sim.clients.forEach(c => { c.gen = program(sim, c); c.gen.next(); });
+  return sim;
+}
+function say(sim, who, plain, term, kind = ''){ sim.log.push({t: sim.t, who, plain, term, kind}); }
+function lose(sim, c, dir){
+  const n = ++c.sent[dir], d = sim.cfg.drop;
+  if (d && c.i === 0 && d.dir === dir && d.nth === n) return true;
+  return hash(sim.seq * 7.31 + c.i * 3.7 + (dir === 'rep' ? 1.3 : 0) + sim.cfg.seed) < sim.cfg.loss;
+}
+function send(sim, c, dir, body){
+  const m = {id: ++sim.seq, c: c.i, dir, body, t0: sim.t, t1: sim.t + K.LAT};
+  m.lost = lose(sim, c, dir);
+  sim.msgs.push(m);
+  return m;
+}
+function* call(sim, c, body){
+  body.rpc = ++sim.seq; let tries = 0;
+  for (;;){
+    tries++; c.tries = tries;
+    if (tries > 1) say(sim, c.name, `${c.name} 没等到回信，重寄一封`, `${c.name} timeout, resend ${body.op}`, 'warn');
+    send(sim, c, 'req', body);
+    c.wait = {rpc: body.rpc, until: sim.cfg.retry ? sim.t + K.RETRY : Infinity};
+    const rep = yield;
+    if (rep){ c.wait = null; return {...rep, retried: tries > 1}; }
+  }
+}
+// what the server does with one request (handlers hold the server lock, so each runs alone)
+function handle(sim, c, b){
+  const d = sim.data;
+  if (b.op === 'Get'){ const e = d[b.key]; return e ? {v: e.v, ver: e.ver} : {err: 'ErrNoKey'}; }
+  if (b.op === 'Append'){
+    sim.execs[b.tag] = (sim.execs[b.tag] || 0) + 1;
+    d[b.key] = {v: (d[b.key] ? d[b.key].v : '') + b.v, ver: 0}; sim.flash = b.key;
+    say(sim, '服务器', `档案室把「${b.v}」追加到 ${b.key} 后面，现在是「${d[b.key].v}」`, `Append(${b.key}, ${b.v}) → "${d[b.key].v}"`, sim.execs[b.tag] > 1 ? 'bad' : '');
+    return {err: 'OK'};
+  }
+  // Put with version
+  const e = d[b.key];
+  if (!e ? b.ver !== 0 : e.ver !== b.ver){
+    say(sim, '服务器', `${b.key} 现在是第 ${e ? e.ver : 0} 版，信上写的是第 ${b.ver} 版，拒绝`, `Put(${b.key}, v${b.ver}) → ErrVersion (at v${e ? e.ver : 0})`, 'warn');
+    return {err: 'ErrVersion'};
+  }
+  sim.execs[b.tag] = (sim.execs[b.tag] || 0) + 1;
+  d[b.key] = {v: b.v, ver: b.ver + 1}; sim.flash = b.key;
+  say(sim, '服务器', `版本对上了：${b.key} 改成「${b.v || '空'}」，升到第 ${b.ver + 1} 版`, `Put(${b.key}, "${b.v}", v${b.ver}) → OK, now v${b.ver + 1}`);
+  return {err: 'OK'};
+}
+// the clerk's rule for a versioned Put
+function* put(sim, c, key, v, ver, tag){
+  const r = yield* call(sim, c, {op: 'Put', key, v, ver, tag});
+  if (r.err === 'ErrVersion' && r.retried && sim.cfg.maybe) return 'ErrMaybe';
+  return r.err;
+}
+function* program(sim, c){
+  const m = sim.cfg.mode;
+  yield* waitUntil(sim, c, c.i * 0.15);               // tiny stagger so clients don't overlap visually
+  if (m === 'append'){
+    const ch = 'xyz'[c.i];
+    c.status = `Append(k, "${ch}")`;
+    const r = yield* call(sim, c, {op: 'Append', key: 'k', v: ch, tag: c.name});
+    finish(sim, c, r.err, 'ok', `收到 OK`);
+  } else if (m === 'version'){
+    c.status = 'Get(k)';
+    const g = yield* call(sim, c, {op: 'Get', key: 'k'});
+    c.status = `Put(k, "${c.name}", ${g.ver})`;
+    const r = yield* put(sim, c, 'k', c.name, g.ver, c.name);
+    c.putTried = true;
+    finish(sim, c, r, r === 'OK' ? 'ok' : r === 'ErrMaybe' ? 'maybe' : 'bad', r);
+  } else {
+    // lock
+    for (;;){
+      c.status = 'Get(lock)';
+      const g = yield* call(sim, c, {op: 'Get', key: 'lock'});
+      if (g.v !== ''){ c.status = `锁被 ${g.v} 拿着，等一会儿`; yield* waitUntil(sim, c, sim.t + 1); continue; }
+      c.status = `Put(lock, "${c.name}", ${g.ver})`;
+      const r = yield* put(sim, c, 'lock', c.name, g.ver, c.name + '#' + g.ver);
+      if (r === 'OK' || (r === 'ErrMaybe' && (yield* readBack(sim, c)))){ break; }
+      c.status = r === 'ErrMaybe' ? '读回来不是自己，重来' : '被别人抢先了，重来';
+    }
+    c.held = true; sim.holders.push(c.name); sim.maxHold = Math.max(sim.maxHold, sim.holders.length);
+    say(sim, c.name, `${c.name} 拿到锁了`, `${c.name} acquired lock`, 'ok');
+    c.status = '持有锁中…';
+    yield* waitUntil(sim, c, sim.t + K.HOLD);
+    for (;;){
+      const g = yield* call(sim, c, {op: 'Get', key: 'lock'});
+      if (g.v !== c.name) break;  // our release already landed (its reply was lost)
+      c.status = `Put(lock, "", ${g.ver})`;
+      const r = yield* put(sim, c, 'lock', '', g.ver, c.name + '#rel' + g.ver);
+      if (r === 'OK' || r === 'ErrMaybe') break;
+    }
+    c.held = false; sim.holders = sim.holders.filter(x => x !== c.name);
+    finish(sim, c, 'released', 'ok', '用完，已解锁');
+  }
+}
+function* readBack(sim, c){
+  c.status = '收到 ErrMaybe，读回来确认';
+  const g = yield* call(sim, c, {op: 'Get', key: 'lock'});
+  return g.v === c.name;
+}
+function* waitUntil(sim, c, t){ c.sleep = t; while (sim.t < t) yield; c.sleep = null; }
+function finish(sim, c, res, kind, text){ c.done = true; c.res = {res, kind, text}; c.status = '结束'; say(sim, c.name, `${c.name} 结束：${text}`, `${c.name} returns ${res}`, kind === 'ok' ? 'ok' : kind === 'bad' ? 'bad' : 'warn'); }
+
+function tick(sim, dt){
+  sim.t += dt;
+  // deliver messages that arrived
+  for (const m of sim.msgs){
+    if (m.handled || sim.t < m.t1) continue;
+    m.handled = true;
+    const c = sim.clients[m.c];
+    if (m.lost){ say(sim, '邮局', `${c.name} 的${m.dir === 'req' ? '信' : '回信'}丢了`, `${m.dir === 'req' ? 'request' : 'reply'} ${m.body.op} lost`, 'bad'); continue; }
+    if (m.dir === 'req'){
+      const rep = handle(sim, c, m.body);
+      send(sim, c, 'rep', {...rep, rpc: m.body.rpc, op: m.body.op});
+    } else if (c.wait && c.wait.rpc === m.body.rpc){
+      c.wait = null; c.gen.next(m.body);
+    }
+  }
+  // resend / wake sleeping programs
+  for (const c of sim.clients){
+    if (c.done) continue;
+    if (c.wait && sim.t >= c.wait.until){ c.wait = null; c.gen.next(null); }
+    else if (!c.wait && c.sleep != null) c.gen.next();
+  }
+  if (sim.doneAt == null && (sim.clients.every(c => c.done) || sim.t >= K.LIMIT)) sim.doneAt = sim.t;
+}
+function runHeadless(cfg){ const s = init(cfg); while (s.doneAt == null) tick(s, 0.05); return s; }
+
+// ground truth for the verdict: how often each operation ran, and whether each answer was true
+function judge(sim){
+  const c = sim.cfg, out = {ok: true, lines: []};
+  const stuck = sim.clients.filter(x => !x.done);
+  if (stuck.length){ out.ok = false; out.lines.push(`${stuck.map(x => x.name).join('、')} 到 ${K.LIMIT} 秒还没结束：${c.retry ? '一直没等到回信' : '信或回信丢了，又没有重试，它会永远等下去'}。`); }
+  if (c.mode === 'append'){
+    const v = sim.data.k ? sim.data.k.v : '', want = sim.clients.filter(x => sim.execs[x.name]).map(x => 'xyz'[x.i]).join('');
+    for (const x of sim.clients){ const n = sim.execs[x.name] || 0; if (n > 1){ out.ok = false; out.lines.push(`${x.name} 的追加执行了 ${n} 次，k 里多了 ${n - 1} 个「${'xyz'[x.i]}」。`); } }
+    out.big = `k = 「${v || '空'}」`;
+    if (out.ok) out.lines.push('每个追加都只执行了一次。');
+  } else if (c.mode === 'version'){
+    for (const x of sim.clients){
+      if (!x.done) continue;
+      const n = sim.execs[x.name] || 0, r = x.res.res;
+      const truth = r === 'OK' ? n === 1 : r === 'ErrVersion' ? n === 0 : true;
+      if (!truth){ out.ok = false; out.lines.push(`${x.name} 回答 ${r}，可它的 Put 其实${n ? '已经执行了' : '没有执行'}。这句话不是实话。`); }
+      else out.lines.push(`${x.name} 回答 ${r}：${r === 'ErrMaybe' ? `实际${n ? '执行了' : '没执行'}，「可能」是诚实的回答` : r === 'OK' ? '确实执行了一次' : '确实没执行'}。`);
+    }
+    out.big = sim.data.k ? `k = 「${sim.data.k.v}」· 第 ${sim.data.k.ver} 版` : '';
+  } else {
+    if (sim.maxHold > 1){ out.ok = false; out.lines.push(`同一时刻有 ${sim.maxHold} 个客户端以为自己拿着锁。`); }
+    else out.lines.push('任何时刻最多只有一个客户端拿着锁。');
+  }
+  return out;
+}
+
+/* ---------------- live playback ---------------- */
+const BASE = {mode: 'version', n: 2, loss: 0, drop: {dir: 'rep', nth: 2}, retry: true, maybe: true, seed: 0};
+let cfg = {...BASE}, sim, playing = false, speed = 1, last = 0, shown = 0, flashT = 0;
+let talk = (() => { try { return localStorage.getItem('lab.talk') || 'plain'; } catch { return 'plain'; } })();
+function readSettings(){
+  const d = $('#optDrop').value;
+  cfg = {...cfg, mode: $('#optMode').value, n: +$('#optN').value, loss: +$('#optLoss').value, retry: $('#optRetry').checked, maybe: $('#optMaybe').checked,
+    drop: d ? {dir: d.split(':')[0], nth: +d.split(':')[1]} : null};
+}
+function writeSettings(){
+  $('#optMode').value = cfg.mode; $('#optN').value = cfg.n; $('#optLoss').value = String(cfg.loss); $('#optRetry').checked = cfg.retry; $('#optMaybe').checked = cfg.maybe;
+  $('#optDrop').value = cfg.drop ? `${cfg.drop.dir}:${cfg.drop.nth}` : '';
+  $('#script').hidden = !cfg.note; $('#script').textContent = cfg.note ? '场景：' + cfg.note : '';
+}
+function reset(){ sim = init(cfg); shown = 0; $('#log').innerHTML = ''; $('#clients').innerHTML = ''; $('#lanes').innerHTML = ''; setPlaying(false); draw(); }
+function setPlaying(v){ playing = v; $('#play').textContent = v ? '暂停' : sim && sim.doneAt != null ? '重放' : '播放'; }
+function draw(){
+  $('#clock').innerHTML = `${sim.t.toFixed(1)} <small>秒</small>`;
+  const ph = $('#phase'); ph.className = 'phase ' + (sim.doneAt != null ? 'done' : sim.t > 0 ? 'run' : ''); ph.textContent = sim.doneAt != null ? '结束' : sim.t > 0 ? '运行中' : '准备';
+  // clients + lanes, one row each
+  const cb = $('#clients'), lb = $('#lanes');
+  if (cb.children.length !== sim.clients.length){ cb.innerHTML = ''; lb.innerHTML = '';
+    sim.clients.forEach(c => { cb.append(el('div', 'cli', `<div class="top"><span class="name">${c.name}</span><span class="tries"></span></div><div class="status"></div><span class="res" hidden></span>`)); lb.append(el('div', 'lane', `<span class="lbl2">${c.name} ⇄ 服务器</span>`)); }); }
+  sim.clients.forEach((c, i) => {
+    const d = cb.children[i];
+    d.className = 'cli' + (c.held ? ' held' : c.wait ? ' wait' : '');
+    d.querySelector('.tries').textContent = c.tries > 1 && !c.done ? `第 ${c.tries} 次发送` : '';
+    d.querySelector('.status').textContent = c.wait && !c.done ? `${c.status} · 等回信` : c.status;
+    const r = d.querySelector('.res'); r.hidden = !c.res; if (c.res){ r.className = 'res ' + c.res.kind; r.textContent = c.res.res === 'released' ? '已解锁' : c.res.res; }
+    // messages in flight on this lane (and lost ones for a moment)
+    const lane = lb.children[i], live = sim.msgs.filter(m => m.c === i && (sim.t < m.t1 || (m.lost && sim.t < m.t1 + 1.2)));
+    lane.querySelectorAll('.msg').forEach(x => x.remove());
+    live.forEach(m => {
+      const p = Math.min(1, (sim.t - m.t0) / K.LAT), frac = m.lost ? Math.min(p, .55) : p;
+      const x = m.dir === 'req' ? 8 + 84*frac : 92 - 84*frac;
+      const label = m.dir === 'req' ? `${m.body.op}${m.body.op === 'Put' ? ' v' + m.body.ver : ''}` : (m.body.err || `"${m.body.v}" v${m.body.ver}`);
+      const s = el('span', `msg ${m.dir}${m.body.err && m.body.err !== 'OK' ? ' err' : ''}${m.lost && p >= .55 ? ' lost' : ''}`, `<i>${m.lost && p >= .55 ? '✕' : ''}</i>${esc(label)}`);
+      s.style.left = x + '%'; lane.append(s);
+    });
+  });
+  // server table
+  const keys = Object.keys(sim.data);
+  const ex = sim.clients.map(c => { const n = Object.entries(sim.execs).filter(([k]) => k === c.name || k.startsWith(c.name + '#')).reduce((s, [, v]) => s + v, 0); return `<span>${c.name} 的修改被执行了 <b class="${n > 1 && cfg.mode === 'append' ? 'dup' : ''}">${n}</b> 次</span>`; }).join('');
+  $('#srv').innerHTML = `<table><thead><tr><th>键</th><th>值</th>${cfg.mode === 'append' ? '' : '<th>版本</th>'}</tr></thead><tbody>${keys.length ? keys.map(k => `<tr class="${sim.flash === k && sim.t - flashT < 1.2 ? 'flash' : ''}"><td>${k}</td><td>「${esc(sim.data[k].v) || '空'}」</td>${cfg.mode === 'append' ? '' : `<td class="ver">${sim.data[k].ver}</td>`}</tr>`).join('') : `<tr><td colspan="3" class="empty">还没有数据</td></tr>`}</tbody></table><div class="execs">${ex}</div>`;
+  if (sim.flash){ flashT = sim.t; sim.flash = null; }
+  for (; shown < sim.log.length; shown++){ const e = sim.log[shown]; $('#log').prepend(el('li', 'k-' + e.kind, `<span class="lt">${e.t.toFixed(1)}s</span><span class="lw">${e.who}</span><span class="lx">${esc(talk === 'plain' ? e.plain : e.term)}</span>`)); }
+  const v = $('#verdict');
+  if (sim.doneAt != null){ const j = judge(sim); v.innerHTML = `<h3>结果校验</h3><p class="big ${j.ok ? 'ok' : 'bad'}">${j.ok ? '没问题' : '出问题了'}</p>${j.big ? `<p><b>${esc(j.big)}</b></p>` : ''}${j.lines.map(l => `<p>${esc(l)}</p>`).join('')}`; }
+  else v.innerHTML = `<h3>结果校验</h3><p>所有客户端结束后，这里会核对两件事：每个操作实际执行了几次，以及每个客户端拿到的答复是不是实话。</p>`;
+}
+function frame(now){ const dt = Math.min(.1, (now - last) / 1000) * speed; last = now; if (playing && sim.doneAt == null){ tick(sim, dt); draw(); if (sim.doneAt != null){ setPlaying(false); draw(); } } requestAnimationFrame(frame); }
+function setTalk(m){ talk = m; try { localStorage.setItem('lab.talk', m); } catch {} document.querySelectorAll('#talk button').forEach(b => b.classList.toggle('on', b.dataset.m === m)); $('#log').innerHTML = ''; shown = 0; draw(); }
+
+$('#play').addEventListener('click', () => { if (sim.doneAt != null) reset(); setPlaying(!playing); });
+$('#step').addEventListener('click', () => { for (let i = 0; i < 10 && sim.doneAt == null; i++) tick(sim, .05); draw(); });
+$('#reset').addEventListener('click', reset);
+$('#speed').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); });
+['#optMode', '#optN', '#optLoss', '#optDrop', '#optRetry', '#optMaybe'].forEach(s => $(s).addEventListener('change', () => { cfg.note = ''; readSettings(); writeSettings(); reset(); }));
+$('#talk').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setTalk(b.dataset.m); });
+
+/* ---------------- predict, then verify ---------------- */
+const QS = [
+  {title: '回信丢了，再寄一次追加', sub: '不带版本号 · 丢掉第 1 封回信', preset: {mode: 'append', n: 1, drop: {dir: 'rep', nth: 1}, note: 'C1 追加「x」，第 1 封回信丢了'},
+   setup: 'C1 请档案室在 k 后面追加一个「x」。档案室办完了，回信却在路上丢了。C1 等了 2 秒，又寄了一封一模一样的信。',
+   ask: '最后 k 是什么？', opts: ['「x」', '「xx」', '空的，什么都没写进去'], right: 1,
+   explain: () => { const a = runHeadless(mk(QS[0].preset)); return `结果是「${a.data.k.v}」，追加执行了 ${a.execs.C1} 次。档案室分不出第二封信是重寄的，它只知道「又来了一个追加请求」。C1 收到 OK，以为一切正常，其实多写了一个 x。这就是视频里的「执行了两次」。`; }},
+  {title: '换成带版本号的 Put', sub: '先 Get 再 Put · 丢掉 Put 的回信', preset: {mode: 'version', n: 1, drop: {dir: 'rep', nth: 2}, note: 'C1 的 Put 回信丢了'},
+   setup: 'C1 先 Get 到 k 是第 1 版，再寄出 Put(k, "C1", 1)。档案室改好了，升到第 2 版，可这封回信丢了。C1 重寄同样的 Put(k, "C1", 1)。',
+   ask: 'C1 最后返回什么？', opts: ['OK', 'ErrVersion', 'ErrMaybe'], right: 2,
+   explain: () => { const a = runHeadless(mk(QS[1].preset)); return `重寄的信写着第 1 版，可 k 已经是第 ${a.data.k.ver} 版了，档案室回复 ErrVersion，重复的修改没有执行（实际只执行了 ${a.execs.C1} 次）。C1 是重寄后才收到拒绝，它分不清是自己第一次已经办成了，还是被别人抢先改了，所以返回 ${a.clients[0].res.res}。`; }},
+  {title: '丢的是信，不是回信', sub: '带版本号 · 丢掉 Put 的请求', preset: {mode: 'version', n: 1, drop: {dir: 'req', nth: 2}, note: 'C1 的 Put 请求丢了'},
+   setup: '还是 C1 一个人。这次丢的是 Put 那封信本身，档案室根本没收到。2 秒后 C1 重寄。',
+   ask: 'C1 最后返回什么？', opts: ['OK', 'ErrVersion', 'ErrMaybe'], right: 0,
+   explain: () => { const a = runHeadless(mk(QS[2].preset)); return `第一封没送到，档案室还停在第 1 版，重寄的信版本对得上，于是正常执行，回复 OK。C1 返回 ${a.clients[0].res.res}。注意：虽然这个 Put 也重寄过，但只有「重寄后收到 ErrVersion」才需要说「可能」，收到 OK 就是确定的成功。`; }},
+  {title: '两个人看到同一版，同时改', sub: '2 个客户端 · 不丢消息', preset: {mode: 'version', n: 2, drop: null, note: 'C1、C2 都看到第 1 版，几乎同时 Put'},
+   setup: 'C1 和 C2 几乎同时 Get，都看到 k 是第 1 版，然后都寄出 Put(k, 自己的名字, 1)。网络很好，什么都没丢。',
+   ask: '结果是什么？', opts: ['两个都 OK，后到的覆盖先到的', '一个 OK，另一个 ErrVersion', '两个都 ErrMaybe'], right: 1,
+   explain: () => { const a = runHeadless(mk(QS[3].preset)); return `先到的 ${a.clients.find(c => c.res.res === 'OK').name} 把 k 改成第 2 版；后到的那封还写着第 1 版，被拒绝，返回 ${a.clients.find(c => c.res.res !== 'OK').res.res}。它是第一次发送就被拒绝的，所以答案是确定的 ErrVersion，不是「可能」。版本号让「我以为它还是我看到的样子」这个假设可以被检查。最后 k =「${a.data.k.v}」。`; }},
+  {title: '关掉重试', sub: '不重寄 · 丢掉 Put 的请求', preset: {mode: 'version', n: 1, retry: false, drop: {dir: 'req', nth: 2}, note: '关掉重试，C1 的 Put 请求丢了'},
+   setup: 'C1 寄出 Put 后就一直等回信，不会重寄。偏偏这封信丢了。',
+   ask: '会发生什么？', opts: ['档案室发现信丢了，通知 C1', 'C1 永远等下去', 'C1 等一会儿后返回 ErrVersion'], right: 1,
+   explain: () => { const a = runHeadless(mk(QS[4].preset)); return `档案室根本不知道有这封信，也就不会回复。C1 到 ${K.LIMIT} 秒还在等（状态：${a.clients[0].done ? '结束' : '等回信'}）。网络里没有人会告诉你「消息丢了」，所以客户端必须自己设超时、自己重寄。Lab 2 的测试会在不可靠网络上运行，不重试的 Clerk 一定会卡住。`; }},
+  {title: '加锁时回信丢了', sub: '锁 · 2 个客户端 · 丢掉 C1 加锁的回信', preset: {mode: 'lock', n: 2, drop: {dir: 'rep', nth: 2}, note: 'C1 加锁那封 Put 的回信丢了'},
+   setup: 'C1 读到锁是空的（第 1 版），寄出 Put(lock, "C1", 1)。档案室写好了，回信丢了。C1 重寄，收到 ErrVersion，于是得到 ErrMaybe。C2 也想要这把锁。',
+   ask: '接下来呢？', opts: ['C1 当作没拿到，重新排队；锁被空占着', 'C1 再读一次锁，发现是自己的名字，拿到锁', 'C2 会和 C1 同时拿到锁'], right: 1,
+   explain: () => { const a = runHeadless(mk(QS[5].preset)); const order = a.log.filter(e => /拿到锁了/.test(e.plain)).map(e => e.who); return `C1 收到 ErrMaybe 后，读回锁的值，看到的是自己的名字「C1」，于是知道第一次已经成功了。拿锁的顺序：${order.join(' → ')}，同一时刻最多 ${a.maxHold} 个人持有锁。如果 C1 把 ErrMaybe 当作失败，它会看到锁「被 C1 拿着」而一直等下去，等的正是它自己。`; }},
+];
+function mk(p){ return {...BASE, ...p}; }
+function buildQs(){
+  QS.forEach((q, qi) => {
+    const a = el('article', 'q', `<span class="qn">题 ${qi + 1}</span><h3>${q.title}</h3><p class="qsub" style="font:500 12.5px var(--f-mono);color:var(--mute);margin-top:-6px">${q.sub}</p><p class="setup">${q.setup}</p><p class="ask">${q.ask}</p><div class="opts"></div><div class="ans" hidden></div>`);
+    const opts = a.querySelector('.opts'), ans = a.querySelector('.ans');
+    q.opts.forEach((o, oi) => { const b = el('button', 'opt', o); b.type = 'button';
+      b.addEventListener('click', () => {
+        opts.querySelectorAll('.opt').forEach((x, xi) => { x.disabled = true; if (xi === q.right) x.classList.add('right'); });
+        if (oi !== q.right) b.classList.add('wrong');
+        try { const k = `course.${EP}.lab.answered`, got = new Set(JSON.parse(localStorage.getItem(k) || '[]')); got.add(qi); localStorage.setItem(k, JSON.stringify([...got])); } catch {}
+        ans.hidden = false;
+        ans.innerHTML = `<p class="res ${oi === q.right ? 'ok' : 'bad'}">${oi === q.right ? '答对了。' : '不对，正确答案已标出。'}</p><p>${q.explain()}</p>`;
+        const run = el('button', 'btn primary', '在模拟器里运行这个场景'); run.type = 'button';
+        run.addEventListener('click', () => { cfg = mk(q.preset); writeSettings(); reset(); $('#lab').scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth'}); setTimeout(() => setPlaying(true), REDUCED ? 0 : 500); });
+        ans.append(run);
+      });
+      opts.append(b); });
+    $('#qs').append(a);
+  });
+}
+
+writeSettings(); reset(); buildQs(); setTalk(talk); requestAnimationFrame(frame);
+if (/^(127\.0\.0\.1|localhost|\[::1\])$/.test(location.hostname)) $('#homeLink').hidden = false;
+</script>
+</body>
+</html>

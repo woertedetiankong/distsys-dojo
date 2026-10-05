@@ -1,0 +1,191 @@
+// Package netsim is the simulated network the kv dojo's tests run your code on.
+//
+// It plays the role of labrpc in MIT 6.5840: a client calls the server through
+// an End, the arguments and reply are copied as if they crossed a wire, and the
+// test can drop any request or reply — at random, or exactly the one it wants.
+// The server's handlers run in the caller's goroutine, so concurrent clients
+// really do run handlers concurrently and -race sees every data race.
+//
+// 这个包由练功房自动生成，每次运行测试都会覆盖，不要修改。
+package netsim
+
+import (
+	"encoding/json"
+	"fmt"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"sync"
+	"time"
+)
+
+const (
+	hop     = time.Millisecond     // one-way delay of a delivered message
+	timeout = 3 * time.Millisecond // how long Call waits before giving up on a lost message
+)
+
+// Net is one simulated network with one server.
+type Net struct {
+	mu     sync.Mutex
+	srv    interface{}
+	rng    *rand.Rand
+	loss   float64
+	down   bool
+	drops  map[string]bool // "client/dir/nth" → drop it
+	counts map[string]int  // "client/dir" → messages sent so far
+	calls  map[string]int  // client → Call count
+	start  time.Time
+	seq    int
+	events []event
+	// OnExec, if set, is called after the server runs a handler (before the reply is sent).
+	OnExec func(client, method string, args, reply interface{})
+}
+
+type event struct {
+	T     float64 `json:"t"`
+	Lane  string  `json:"lane"`
+	Kind  string  `json:"k"`
+	ID    string  `json:"id,omitempty"`
+	Label string  `json:"label,omitempty"`
+	Bad   bool    `json:"bad,omitempty"`
+}
+
+func New(seed int64) *Net {
+	return &Net{rng: rand.New(rand.NewSource(seed)), drops: map[string]bool{}, counts: map[string]int{}, calls: map[string]int{}, start: time.Now()}
+}
+
+// Serve sets the object whose methods clients call, e.g. Call("Server.Put", …) runs srv.Put.
+func (n *Net) Serve(srv interface{}) { n.mu.Lock(); n.srv = srv; n.mu.Unlock() }
+
+// SetLoss drops each request and each reply with probability p.
+func (n *Net) SetLoss(p float64) { n.mu.Lock(); n.loss = p; n.mu.Unlock() }
+
+// SetDown drops every message while b is true.
+func (n *Net) SetDown(b bool) { n.mu.Lock(); n.down = b; n.mu.Unlock() }
+
+// Drop drops client's nth request (dir "req") or nth reply (dir "rep"), counting from 1.
+func (n *Net) Drop(client, dir string, nth int) {
+	n.mu.Lock()
+	n.drops[fmt.Sprintf("%s/%s/%d", client, dir, nth)] = true
+	n.mu.Unlock()
+}
+
+// Calls returns how many times client has called Call.
+func (n *Net) Calls(client string) int { n.mu.Lock(); defer n.mu.Unlock(); return n.calls[client] }
+
+func (n *Net) ev(lane, kind, id, label string, bad bool) {
+	if len(n.events) < 3000 {
+		n.events = append(n.events, event{time.Since(n.start).Seconds(), lane, kind, id, label, bad})
+	}
+}
+
+// lost decides, under n.mu, whether the next message from/to client in direction dir is dropped.
+func (n *Net) lost(client, dir string) bool {
+	key := client + "/" + dir
+	n.counts[key]++
+	if n.drops[fmt.Sprintf("%s/%d", key, n.counts[key])] {
+		return true
+	}
+	return n.down || (n.loss > 0 && n.rng.Float64() < n.loss)
+}
+
+// End is one client's connection to the server.
+type End struct {
+	n    *Net
+	name string
+}
+
+func (n *Net) End(client string) *End { return &End{n, client} }
+
+// Call sends an RPC and waits for the reply, like labrpc's Call:
+//
+//	ok := end.Call("Server.Get", &args, &reply)
+//
+// It returns true if the reply arrived. It returns false if the request or the
+// reply was lost — and the caller cannot tell which: when the reply is lost, the
+// server has already run the handler.
+func (e *End) Call(method string, args interface{}, reply interface{}) bool {
+	n := e.n
+	short := method
+	if i := strings.LastIndex(method, "."); i >= 0 {
+		short = method[i+1:]
+	}
+	n.mu.Lock()
+	n.calls[e.name]++
+	n.seq++
+	id := fmt.Sprint(n.seq)
+	srv := n.srv
+	dropReq := n.lost(e.name, "req")
+	n.ev(e.name, "begin", id, short, false)
+	n.mu.Unlock()
+
+	if dropReq || srv == nil {
+		time.Sleep(timeout)
+		n.mu.Lock()
+		n.ev(e.name, "mark", "", short+" 请求丢了", true)
+		n.ev(e.name, "end", id, "", true)
+		n.mu.Unlock()
+		return false
+	}
+	time.Sleep(hop)
+	m := reflect.ValueOf(srv).MethodByName(short)
+	if !m.IsValid() || m.Type().NumIn() != 2 || m.Type().NumOut() != 1 {
+		panic(fmt.Sprintf("netsim: 服务器没有可以通过 RPC 调用的方法 %q（需要 func (s *Server) %s(args *X, reply *Y) error）", method, short))
+	}
+	a := reflect.New(m.Type().In(0).Elem())
+	r := reflect.New(m.Type().In(1).Elem())
+	copyVia(args, a.Interface())
+	out := m.Call([]reflect.Value{a, r})
+	if err, _ := out[0].Interface().(error); err != nil {
+		panic(fmt.Sprintf("netsim: %s 返回了错误 %v；处理函数应该把结果写进 reply.Err，并返回 nil", method, err))
+	}
+	if n.OnExec != nil {
+		n.OnExec(e.name, short, a.Interface(), r.Interface())
+	}
+
+	n.mu.Lock()
+	dropRep := n.lost(e.name, "rep")
+	n.mu.Unlock()
+	if dropRep {
+		time.Sleep(timeout)
+		n.mu.Lock()
+		n.ev(e.name, "mark", "", short+" 回复丢了", true)
+		n.ev(e.name, "end", id, "", true)
+		n.mu.Unlock()
+		return false
+	}
+	time.Sleep(hop)
+	copyVia(r.Interface(), reply)
+	n.mu.Lock()
+	n.ev(e.name, "end", id, "", false)
+	n.mu.Unlock()
+	return true
+}
+
+func copyVia(from, to interface{}) {
+	b, err := json.Marshal(from)
+	if err != nil {
+		panic(fmt.Sprintf("netsim: RPC 参数无法编码：%v", err))
+	}
+	v := reflect.ValueOf(to)
+	if v.Kind() == reflect.Ptr && !v.IsNil() {
+		v.Elem().Set(reflect.Zero(v.Elem().Type()))
+	}
+	if err := json.Unmarshal(b, to); err != nil {
+		panic(fmt.Sprintf("netsim: RPC 回复的类型和参数对不上：%v", err))
+	}
+}
+
+// Save writes the trace for the web UI's timeline, if DOJO_TRACE_DIR is set (the runner sets it).
+func (n *Net) Save(test string) {
+	dir := os.Getenv("DOJO_TRACE_DIR")
+	if dir == "" {
+		return
+	}
+	n.mu.Lock()
+	data, _ := json.Marshal(map[string]interface{}{"t_end": time.Since(n.start).Seconds(), "events": n.events})
+	n.mu.Unlock()
+	os.WriteFile(filepath.Join(dir, strings.ReplaceAll(test, "/", "_")+".json"), data, 0o644)
+}

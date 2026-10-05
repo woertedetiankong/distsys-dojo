@@ -1,0 +1,68 @@
+// 练功房自动生成的测试文件，每次运行都会覆盖，不要修改。
+package kv
+
+import (
+	"encoding/json"
+	"testing"
+	"time"
+
+	"lab/netsim"
+)
+
+// fail reports a failure the web UI understands, then stops the test.
+func fail(t *testing.T, code, msg string, extra ...map[string]interface{}) {
+	t.Helper()
+	m := map[string]interface{}{"code": code, "msg": msg}
+	for _, e := range extra {
+		for k, v := range e {
+			m[k] = v
+		}
+	}
+	b, _ := json.Marshal(m)
+	t.Log("DOJO_FAIL " + string(b))
+	t.FailNow()
+}
+
+// env is one server on one simulated network; its trace is saved for the timeline when the test ends.
+type env struct {
+	net *netsim.Net
+	srv *Server
+}
+
+func newEnv(t *testing.T) *env {
+	e := &env{net: netsim.New(int64(len(t.Name()))), srv: NewServer()}
+	e.net.Serve(e.srv)
+	t.Cleanup(func() { e.net.Save(t.Name()) })
+	return e
+}
+
+func (e *env) clerk(name string) *Clerk { return MakeClerk(e.net.End(name)) }
+
+// within runs f on its own goroutine and fails with code if it hasn't returned after d
+// (a Clerk or Lock that never returns). f may call fail() itself.
+func within(t *testing.T, d time.Duration, code, msg string, f func()) {
+	t.Helper()
+	done := make(chan struct{})
+	go func() { defer close(done); f() }()
+	select {
+	case <-done:
+		if t.Failed() { // f called fail() on its own goroutine: stop the test here
+			t.FailNow()
+		}
+	case <-time.After(d):
+		fail(t, code, msg)
+	}
+}
+
+// direct server calls, no network
+func sget(s *Server, key string) GetReply {
+	var r GetReply
+	s.Get(&GetArgs{Key: key}, &r)
+	return r
+}
+
+func sput(s *Server, key, value string, version int) Err {
+	var r PutReply
+	s.Put(&PutArgs{Key: key, Value: value, Version: version}, &r)
+	return r.Err
+}
