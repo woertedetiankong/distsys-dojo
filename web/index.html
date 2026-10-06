@@ -15,22 +15,24 @@
 <body class="hub-body">
 <header class="hub-top">
   <div class="brand"><b id="brand"></b><span class="scrawl" id="sub"></span></div>
-  <div class="runner" id="runner"><span class="dot"></span><span id="runnerText">正在连接本地运行器…</span></div>
+  <div class="runner" id="runner"><span class="dot"></span><span id="runnerText" data-en="Connecting to the local runner…">正在连接本地运行器…</span></div>
 </header>
 
 <main class="hub">
   <section class="ep-head card" id="epHead" aria-live="polite"></section>
-  <section class="steps" id="steps" aria-label="学习步骤"></section>
+  <section class="steps" id="steps" aria-label="学习步骤" data-en-label="Steps"></section>
 
   <section aria-labelledby="mapH">
-    <div class="sec-h"><h2 id="mapH">课程地图</h2><p id="mapNote"></p></div>
+    <div class="sec-h"><h2 id="mapH" data-en="Course map">课程地图</h2><p id="mapNote"></p></div>
     <div class="map" id="map"></div>
   </section>
 
   <footer class="hub-foot"><p id="foot"></p></footer>
 </main>
 
+<script src="js/i18n.js"></script>
 <script src="js/course.js"></script>
+<script src="js/course.en.js"></script>
 <script src="js/hub.js"></script>
 </body>
 </html>

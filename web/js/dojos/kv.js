@@ -1,5 +1,5 @@
 // 练功房 kv 的课程内容：每关的讲解、任务、分层提示，以及按失败原因给出的定向提示。
-// 文件名 = 练功房 id = course/testdata/dojos/kv/ 目录名 = Go 包名。
+// 文件名 = 练功房 id = course/testdata/dojos/kv/ 目录名 = Go 包名。英文版的文字在 kv.en.js 里。
 window.COURSE = {
   id: 'kv',
   title: 'Go 练功房',

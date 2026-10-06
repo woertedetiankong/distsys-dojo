@@ -54,6 +54,10 @@ code{font:12.5px var(--f-mono); background:var(--soft); border-radius:5px; paddi
 .runner .dot{width:7px; height:7px; border-radius:50%; background:currentColor}
 .runner.ok{color:var(--ok)}
 .runner.bad{color:var(--bad); background:var(--bad-soft); border-color:transparent}
+.lang{display:inline-flex; padding:3px; gap:2px; border-radius:999px; background:var(--tile); border:1px solid var(--edge); cursor:pointer; font:600 12px/1 var(--f-mono); color:var(--mute)}
+.lang span{padding:5px 9px; border-radius:999px}
+.lang span.on{background:var(--ink); color:var(--bg)}
+.lang:hover span:not(.on){color:var(--ink)}
 .levels{flex-basis:100%; display:flex; gap:8px; padding:8px 0 2px; overflow-x:auto; scrollbar-width:none}
 .lv{flex:1 1 0; min-width:116px; max-width:240px; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:10px 14px; border:1px solid var(--edge); border-radius:16px; background:var(--tile); cursor:pointer; font:600 14px var(--f-sans); color:var(--ink); text-align:left; transition:background .15s, box-shadow .15s}
 .lv:hover{background:var(--soft-2)}

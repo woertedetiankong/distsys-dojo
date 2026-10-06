@@ -1,4 +1,5 @@
 // 课程数据：课程首页（hub.js）读这里。加一集 = 在 EPISODES 里加一项。
+// 英文版的文字在 course.en.js 里，按 id 对应；没写英文的字段沿用这里的中文。
 //
 // status: ready = 全部材料齐了；partial = 只有部分材料；planned = 还没做，只在课程地图里占位
 // steps:  按顺序列出这一集有的步骤，可选 video / reading / lab / dojo / assignment

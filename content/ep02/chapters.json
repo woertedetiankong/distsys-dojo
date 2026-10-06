@@ -3,55 +3,68 @@
  "chapters": [
   {
    "t": 0.0,
-   "title": "RPC 与 Go 并发"
+   "title": "RPC 与 Go 并发",
+   "title_en": "RPC and Threads"
   },
   {
    "t": 18.57,
-   "title": "远程过程调用"
+   "title": "远程过程调用",
+   "title_en": "Remote Procedure Call"
   },
   {
    "t": 48.55,
-   "title": "同时到来的请求"
+   "title": "同时到来的请求",
+   "title_en": "Many Calls at Once"
   },
   {
    "t": 81.4,
-   "title": "三种沉默"
+   "title": "三种沉默",
+   "title_en": "Three Kinds of Silence"
   },
   {
    "t": 104.99,
-   "title": "那就重试"
+   "title": "那就重试",
+   "title_en": "Just Try Again"
   },
   {
    "t": 127.2,
-   "title": "执行了两次"
+   "title": "执行了两次",
+   "title_en": "Executed Twice"
   },
   {
    "t": 154.24,
-   "title": "至少一次与至多一次"
+   "title": "至少一次与至多一次",
+   "title_en": "At Least Once, At Most Once"
   },
   {
    "t": 187.06,
-   "title": "带版本号的 Put"
+   "title": "带版本号的 Put",
+   "title_en": "Put with a Version"
   },
   {
    "t": 213.51,
-   "title": "可能成功了"
+   "title": "可能成功了",
+   "title_en": "ErrMaybe"
   },
   {
    "t": 241.4,
-   "title": "用 Put 做一把锁"
+   "title": "用 Put 做一把锁",
+   "title_en": "A Lock Built on Put"
   },
   {
    "t": 272.07,
-   "title": "Lab 2：你要实现什么"
+   "title": "Lab 2：你要实现什么",
+   "title_en": "Lab 2: What You Build"
   },
   {
    "t": 304.16,
-   "title": "本集要点"
+   "title": "本集要点",
+   "title_en": "Takeaways"
   },
   {
    "t": 326.44,
-   "title": "思考题"
+   "title": "思考题",
+   "title_en": "Think About It"
   }
  ]
 }

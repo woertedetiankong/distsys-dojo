@@ -3,43 +3,53 @@
  "chapters": [
   {
    "t": 0.0,
-   "title": "分布式系统"
+   "title": "分布式系统",
+   "title_en": "Distributed Systems"
   },
   {
    "t": 12.2,
-   "title": "一台机器的极限"
+   "title": "一台机器的极限",
+   "title_en": "The Limits of One Machine"
   },
   {
    "t": 24.12,
-   "title": "横向扩展"
+   "title": "横向扩展",
+   "title_en": "Scaling Out"
   },
   {
    "t": 37.06,
-   "title": "不可靠的网络"
+   "title": "不可靠的网络",
+   "title_en": "The Network Is Unreliable"
   },
   {
    "t": 61.85,
-   "title": "复制"
+   "title": "复制",
+   "title_en": "Replication"
   },
   {
    "t": 76.78,
-   "title": "Raft：选出领导者"
+   "title": "Raft：选出领导者",
+   "title_en": "Raft: Leader Election"
   },
   {
    "t": 97.91,
-   "title": "Raft：日志复制"
+   "title": "Raft：日志复制",
+   "title_en": "Raft: Log Replication"
   },
   {
    "t": 115.37,
-   "title": "分片"
+   "title": "分片",
+   "title_en": "Sharding"
   },
   {
    "t": 132.1,
-   "title": "MapReduce"
+   "title": "MapReduce",
+   "title_en": "MapReduce"
   },
   {
    "t": 153.61,
-   "title": "总结"
+   "title": "总结",
+   "title_en": "The Big Picture"
   }
  ]
 }

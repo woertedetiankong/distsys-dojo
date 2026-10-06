@@ -21,7 +21,7 @@ for ep, src in EPISODES.items():
     if not os.path.exists(dst) or os.path.getmtime(v) > os.path.getmtime(dst):
         shutil.copy2(v, dst)
     tl = json.load(open(os.path.join(SRC, src["timeline"])))
-    chapters = [{"t": round(s["start"], 2), "title": s["zh"]} for s in tl["scenes"]]
+    chapters = [{"t": round(s["start"], 2), "title": s["zh"], "title_en": s["title"]} for s in tl["scenes"]]
     json.dump({"duration": tl["total"], "chapters": chapters}, open(os.path.join(out, "chapters.json"), "w"), ensure_ascii=False, indent=1)
     if "lab" in src:
         body = open(os.path.join(SRC, src["lab"])).read()

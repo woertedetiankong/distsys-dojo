@@ -3,55 +3,68 @@
  "chapters": [
   {
    "t": 0.0,
-   "title": "MapReduce"
+   "title": "MapReduce",
+   "title_en": "MapReduce"
   },
   {
    "t": 18.38,
-   "title": "要解决的问题"
+   "title": "要解决的问题",
+   "title_en": "The Problem"
   },
   {
    "t": 45.52,
-   "title": "编程模型"
+   "title": "编程模型",
+   "title_en": "The Programming Model"
   },
   {
    "t": 71.28,
-   "title": "词频统计全流程"
+   "title": "词频统计全流程",
+   "title_en": "Word Count, End to End"
   },
   {
    "t": 98.78,
-   "title": "分区"
+   "title": "分区",
+   "title_en": "Partitioning"
   },
   {
    "t": 126.87,
-   "title": "协调者与 Worker"
+   "title": "协调者与 Worker",
+   "title_en": "Coordinator and Workers"
   },
   {
    "t": 164.82,
-   "title": "Worker 宕机"
+   "title": "Worker 宕机",
+   "title_en": "When a Worker Crashes"
   },
   {
    "t": 199.67,
-   "title": "原子重命名"
+   "title": "原子重命名",
+   "title_en": "Atomic Rename"
   },
   {
    "t": 230.05,
-   "title": "拖后腿的机器"
+   "title": "拖后腿的机器",
+   "title_en": "Stragglers"
   },
   {
    "t": 250.94,
-   "title": "节省网络带宽"
+   "title": "节省网络带宽",
+   "title_en": "Saving the Network"
   },
   {
    "t": 276.97,
-   "title": "Lab 1：你要实现什么"
+   "title": "Lab 1：你要实现什么",
+   "title_en": "Lab 1: What You Build"
   },
   {
    "t": 320.62,
-   "title": "本集要点"
+   "title": "本集要点",
+   "title_en": "Takeaways"
   },
   {
    "t": 344.37,
-   "title": "思考题"
+   "title": "思考题",
+   "title_en": "Think About It"
   }
  ]
 }

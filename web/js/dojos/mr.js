@@ -1,5 +1,5 @@
 // 练功房 mr 的课程内容：每关的讲解、任务、分层提示，以及按失败原因给出的定向提示。
-// 文件名 = 练功房 id = course/testdata/dojos/mr/ 目录名 = Go 包名。
+// 文件名 = 练功房 id = course/testdata/dojos/mr/ 目录名 = Go 包名。英文版的文字在 mr.en.js 里。
 
 // 旧版本把进度存在 dojo.go-mr.*，搬到 dojo.mr.*，只搬一次。
 (() => { try { for (const k of ['level', 'passed', 'hints']){ const o = localStorage.getItem('dojo.go-mr.' + k); if (o != null && localStorage.getItem('dojo.mr.' + k) == null) localStorage.setItem('dojo.mr.' + k, o); } } catch {} })();
@@ -24,7 +24,7 @@ function renderTimeline(tlTest, {esc, width: W}){
   workers.forEach(w => {
     const y = Y(w), sp = ev.find(e => e.k === 'spawn' && e.w === w);
     s += `<text x="4" y="${y + 6}" font-size="12.5" font-weight="600" fill="var(--ink)">W${w}</text>`;
-    if (slow[w]) s += `<text x="4" y="${y + 18}" font-size="10" fill="var(--warn)">慢</text>`;
+    if (slow[w]) s += `<text x="4" y="${y + 18}" font-size="10" fill="var(--warn)">${L('慢', 'slow')}</text>`;
     s += `<path d="M${X(sp ? sp.t : 0)},${y} L${X(tEnd)},${y}" stroke="var(--edge-2)" stroke-width="1.5" stroke-dasharray="2 5" fill="none"/>`;
   });
   ev.forEach((e, i) => {
@@ -37,17 +37,19 @@ function renderTimeline(tlTest, {esc, width: W}){
       if (f.k === 'assign'){ end = f.t; break; }
     }
     const x = X(e.t), w = Math.max(4, X(end) - x), y = Y(e.w), c = col(e.task);
-    s += `<g><title>${e.task} · W${e.w} · ${e.t.toFixed(2)}s → ${end.toFixed(2)}s${how === 'crash' ? '（宕机中断）' : how === 'done' ? '' : '（没有汇报完成）'}</title>
+    s += `<g><title>${e.task} · W${e.w} · ${e.t.toFixed(2)}s → ${end.toFixed(2)}s${how === 'crash' ? L('（宕机中断）', ' (cut off by a crash)') : how === 'done' ? '' : L('（没有汇报完成）', ' (never reported done)')}</title>
       <path d="${wobble(x, y - 11, w, 22)}" fill="${c}" fill-opacity="${how === 'done' ? .18 : .06}" stroke="${c}" stroke-width="1.5" ${how !== 'done' ? 'stroke-dasharray="5 4"' : ''}/>
       ${w > 22 ? `<text x="${x + 5}" y="${y + 6}" font-size="11" font-weight="600" fill="${c}">${e.task}</text>` : ''}</g>`;
   });
   ev.forEach(e => {
     const x = X(e.t), y = e.w != null && workers.includes(e.w) ? Y(e.w) : 0;
-    if (e.k === 'crash') s += `<g stroke="var(--bad)" stroke-width="2.5" stroke-linecap="round"><title>W${e.w} 宕机 @ ${e.t}s</title><path d="M${x - 8},${y - 9} L${x + 7},${y + 8} M${x + 8},${y - 8} L${x - 7},${y + 9}"/></g>`;
-    if (e.k === 'exit') s += `<path d="M${x},${y - 11} L${x + 1},${y + 11}" stroke="var(--ink-2)" stroke-width="2.5" stroke-linecap="round"><title>W${e.w} 退出</title></path>`;
+    if (e.k === 'crash') s += `<g stroke="var(--bad)" stroke-width="2.5" stroke-linecap="round"><title>W${e.w} ${L('宕机', 'crashed')} @ ${e.t}s</title><path d="M${x - 8},${y - 9} L${x + 7},${y + 8} M${x + 8},${y - 8} L${x - 7},${y + 9}"/></g>`;
+    if (e.k === 'exit') s += `<path d="M${x},${y - 11} L${x + 1},${y + 11}" stroke="var(--ink-2)" stroke-width="2.5" stroke-linecap="round"><title>W${e.w} ${L('退出', 'exited')}</title></path>`;
     if (e.k === 'done') s += `<path d="M${x},${top - 16} L${x + 1},${H - 24}" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="6 4"/><text x="${x > W - 70 ? x - 4 : x + 4}" y="${top - 18}" font-size="11" font-weight="600" fill="var(--ok)" text-anchor="${x > W - 70 ? 'end' : 'start'}">Done()</text>`;
   });
-  const desc = e => ({spawn: '启动' + (e.slow ? `（慢机器，慢 ${e.slow} 倍）` : ''), assign: e.task === 'wait' ? '收到 WaitTask' : e.task === 'exit' ? '收到 ExitTask' : `领到 ${e.task}`, report: `汇报完成 ${e.task}`, crash: '宕机', exit: '退出', done: 'Done() 返回 true', write: `开始直接写 ${e.f}`, wrote: `写完 ${e.f}`, rename: `rename → ${e.f}`, read: `读 ${e.f}`})[e.k] || e.k;
+  const desc = e => (LANG === 'en'
+    ? {spawn: 'started' + (e.slow ? ` (slow machine, ${e.slow}× slower)` : ''), assign: e.task === 'wait' ? 'got WaitTask' : e.task === 'exit' ? 'got ExitTask' : `got ${e.task}`, report: `reported ${e.task} done`, crash: 'crashed', exit: 'exited', done: 'Done() returned true', write: `started writing ${e.f} in place`, wrote: `finished writing ${e.f}`, rename: `rename → ${e.f}`, read: `read ${e.f}`}
+    : {spawn: '启动' + (e.slow ? `（慢机器，慢 ${e.slow} 倍）` : ''), assign: e.task === 'wait' ? '收到 WaitTask' : e.task === 'exit' ? '收到 ExitTask' : `领到 ${e.task}`, report: `汇报完成 ${e.task}`, crash: '宕机', exit: '退出', done: 'Done() 返回 true', write: `开始直接写 ${e.f}`, wrote: `写完 ${e.f}`, rename: `rename → ${e.f}`, read: `读 ${e.f}`})[e.k] || e.k;
   // name the stuck tasks: assigned, never reported, and why
   const stuck = [];
   if (!tlTest.ok){
@@ -57,14 +59,15 @@ function renderTimeline(tlTest, {esc, width: W}){
     for (const [task, e] of Object.entries(lastAssign)){
       if (reported.has(task)) continue;
       const cr = ev.find(f => f.k === 'crash' && f.w === e.w && f.t >= e.t);
-      stuck.push(cr ? `${task} 在 ${e.t.toFixed(2)}s 分给了 W${e.w}，W${e.w} 在 ${cr.t.toFixed(2)}s 宕机，之后再也没有人重新领取 ${task}。` : `${task} 在 ${e.t.toFixed(2)}s 分给了 W${e.w}，一直没有汇报完成。`);
+      stuck.push(cr ? L(`${task} 在 ${e.t.toFixed(2)}s 分给了 W${e.w}，W${e.w} 在 ${cr.t.toFixed(2)}s 宕机，之后再也没有人重新领取 ${task}。`, `${task} went to W${e.w} at ${e.t.toFixed(2)}s; W${e.w} crashed at ${cr.t.toFixed(2)}s, and nobody picked ${task} up again.`)
+                    : L(`${task} 在 ${e.t.toFixed(2)}s 分给了 W${e.w}，一直没有汇报完成。`, `${task} went to W${e.w} at ${e.t.toFixed(2)}s and was never reported done.`));
     }
   }
   const list = ev.filter(e => !['read', 'wrote'].includes(e.k) && !(e.k === 'assign' && e.task === 'wait')).slice(0, 400);
-  return `<svg class="tl-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="worker 时间线">${s}</svg>
+  return `<svg class="tl-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${L('worker 时间线', 'worker timeline')}">${s}</svg>
     ${stuck.slice(0, 3).map(x => `<p class="tl-note">${esc(x)}</p>`).join('')}
-    ${quiet ? `<p class="tl-note">${lastEv.toFixed(2)}s 之后，直到 ${tReal.toFixed(1)}s 测试结束，再也没有任何动静。</p>` : ''}
-    ${!tlTest.ok ? `<p class="muted" style="color:var(--mute);font-size:12.5px">虚线框：领了任务却没有汇报完成。红叉：宕机。</p>` : ''}
+    ${quiet ? `<p class="tl-note">${L(`${lastEv.toFixed(2)}s 之后，直到 ${tReal.toFixed(1)}s 测试结束，再也没有任何动静。`, `After ${lastEv.toFixed(2)}s nothing happened at all, until the test ended at ${tReal.toFixed(1)}s.`)}</p>` : ''}
+    ${!tlTest.ok ? `<p class="muted" style="color:var(--mute);font-size:12.5px">${L('虚线框：领了任务却没有汇报完成。红叉：宕机。', 'Dashed box: a task taken but never reported done. Red cross: a crash.')}</p>` : ''}
     <ol class="evlist">${list.map(e => `<li class="${e.k}"><span class="t">${e.t.toFixed(2)}s</span><span class="w">${e.w != null ? 'W' + e.w : ''}</span><span>${esc(desc(e))}</span></li>`).join('')}</ol>`;
 }
 

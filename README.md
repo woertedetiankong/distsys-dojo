@@ -1,5 +1,7 @@
 # 分布式系统练功房
 
+中文 | [English](README.en.md)
+
 在浏览器里写 Go，一关一关实现 MapReduce 和带版本号的键值服务器。代码保存在你电脑上的真实文件里，测试用真正的 `go test -race` 运行。灵感来自 MIT 6.5840（6.824）分布式系统课程的 Lab 1，题目、测试和代码均为原创。
 
 ## 开始
@@ -14,6 +16,8 @@
    ```
 
 3. 打开终端里打印出来的链接（会自动打开浏览器），进入**课程首页**。
+
+网页有中文和英文两种模式，点右上角的「中 / EN」切换；课程首页、练功房和实验台共用这个设置，默认跟随浏览器语言。
 
 课程首页按集组织，每一集按顺序走：读论文或讲义 → 玩实验台 → 练功房写代码 → 做真正的 MIT Lab（讲解视频之后会加上）。论文和 Lab 链接指向 MIT 课程官网，进度会自动记录在浏览器里。
 
@@ -67,9 +71,12 @@
 |---|---|
 | `main.go` | 本地运行器：提供网页、读写代码文件、运行测试 |
 | `web/js/course.js` | 课程数据：每一集的步骤、链接、对应的练功房 |
+| `web/js/course.en.js` | 课程数据的英文文字，按 id 覆盖到 course.js 上 |
+| `web/js/i18n.js` | 中英切换：`L(中文, English)`、英文覆盖、`data-en` 静态文字 |
 | `web/index.html`、`web/js/hub.js` | 课程首页：各集的学习步骤和课程地图 |
 | `web/dojo.html`、`web/js/app.js` | 练功房编辑器（`dojo.html?d=mr`） |
 | `web/js/dojos/<练功房>.js` | 关卡讲解、分层提示、按失败原因给出的提示 |
+| `web/js/dojos/<练功房>.en.js` | 同上的英文版，按关卡号覆盖 |
 | `content/` | 各集的视频、章节和实验台 |
 | `dev/sync_content.py` | 把做好的视频和实验台复制进 `content/` |
 | `course/testdata/shared/dojo/` | MapReduce 的模拟集群（复制到 `workspace/dojo/`） |
@@ -78,6 +85,8 @@
 | `course/testdata/dojos/<练功房>/tests/` | 各关测试（每次运行前复制到 `workspace/<练功房>/`） |
 | `course/testdata/dojos/<练功房>/reference/` | 参考答案，**剧透**，做完再看 |
 | `dev/check.py`、`dev/mutations.py` | 验证测试：参考答案全部通过，初始代码不通过，典型错误被对应的关卡抓到 |
+
+测试的失败信息同时带中文和英文（`msg` 和 `msg_en`，在测试辅助函数里用 `say(中文, English, 参数...)` 生成），网页按当前模式显示其中一种。
 
 运行 `python3 dev/check.py` 需要 `go` 在 PATH 里，全部跑完约 5 分钟。
 

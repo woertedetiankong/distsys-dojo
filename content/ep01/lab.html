@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
+<script>
+/* 中文 / English. The choice is shared with the course site (localStorage 'course.lang'); the default follows the browser. */
+const EN = (() => { let l = null; try { l = localStorage.getItem('course.lang'); } catch {} if (l !== 'zh' && l !== 'en') l = /^zh\b/i.test(navigator.language || '') ? 'zh' : 'en'; return l === 'en'; })();
+const L = (zh, en) => EN ? en : zh;
+document.documentElement.lang = EN ? 'en' : 'zh-CN';
+</script>
 <title>MapReduce 实验台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,8 +57,13 @@ button,select,input,textarea{font:inherit; color:inherit}
 .hero{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:16px; align-items:stretch}
 .hero > div:first-child{background:var(--tile); border:1px solid var(--edge); border-radius:22px; padding:28px 30px; display:flex; flex-direction:column; justify-content:flex-end}
 .eyebrow{font:500 13px var(--f-mono); color:var(--acc)}
-.home{align-self:flex-start; margin-bottom:14px; font:500 13px var(--f-sans); color:var(--mute); text-decoration:none; padding:6px 12px; border-radius:10px; background:var(--soft)}
+.home{ font:500 13px var(--f-sans); color:var(--mute); text-decoration:none; padding:6px 12px; border-radius:10px; background:var(--soft)}
 .home:hover{color:var(--ink)}
+.hero-top{display:flex; align-items:center; gap:10px; margin-bottom:14px}
+.lang{margin-left:auto; display:inline-flex; padding:3px; gap:2px; border-radius:999px; background:var(--soft); border:0; cursor:pointer; font:600 12px/1 var(--f-mono); color:var(--mute)}
+.lang span{padding:5px 9px; border-radius:999px}
+.lang span.on{background:var(--ink); color:var(--bg)}
+.lang:hover span:not(.on){color:var(--ink)}
 .hero h1{font:600 clamp(36px,5vw,56px)/1.05 var(--f-sans); letter-spacing:-.03em; margin-top:10px}
 .hero h1 .latin{font:inherit}
 .lead{margin-top:14px; max-width:36em; color:var(--mute); font-size:15.5px; text-wrap:pretty}
@@ -273,33 +284,33 @@ footer{font-size:13px; color:var(--faint); border-top:1px solid var(--edge); pad
 <div class="wrap">
   <header class="hero">
     <div>
-      <a class="home" id="homeLink" href="/" hidden>← 课程首页</a>
-      <p class="eyebrow">MIT 6.5840 分布式系统 · 第 1 集 · 交互实验</p>
-      <h1><span class="latin">MapReduce</span> 实验台</h1>
-      <p class="lead">视频讲了 MapReduce 怎么工作，这一页让你亲手试一试。想象一位老师请几位助教，统计一大堆作文里每个词出现了几次：你可以让某位助教突然失联、安排一位动作特别慢的助教，或者不让大家用草稿纸，看看老师怎么应对，最后的统计结果还对不对。</p>
+      <div class="hero-top"><a class="home" id="homeLink" href="/" hidden data-en="← Course home">← 课程首页</a><button class="lang" id="langBtn" type="button"></button></div>
+      <p class="eyebrow" data-en="MIT 6.5840 Distributed Systems · Episode 1 · Interactive lab">MIT 6.5840 分布式系统 · 第 1 集 · 交互实验</p>
+      <h1 data-en="<span class='latin'>MapReduce</span> lab"><span class="latin">MapReduce</span> 实验台</h1>
+      <p class="lead" data-en="The video showed how MapReduce works; this page lets you try it. Picture a teacher who asks a few helpers to count how often each word appears in a big pile of essays: you can make a helper suddenly unreachable, add a helper who works very slowly, or take away everyone’s scratch paper, then see how the teacher copes and whether the final count is still right.">视频讲了 MapReduce 怎么工作，这一页让你亲手试一试。想象一位老师请几位助教，统计一大堆作文里每个词出现了几次：你可以让某位助教突然失联、安排一位动作特别慢的助教，或者不让大家用草稿纸，看看老师怎么应对，最后的统计结果还对不对。</p>
     </div>
-    <ol class="path" aria-label="学习顺序">
-      <li data-n="01"><b>看视频</b>建立直觉</li>
-      <li data-n="02"><b>读论文</b>Dean &amp; Ghemawat, OSDI 2004</li>
-      <li data-n="03" class="here"><b>做实验</b>就是这一页</li>
-      <li data-n="04"><b>写 Lab 1</b>coordinator.go 与 worker.go</li>
+    <ol class="path" aria-label="学习顺序" data-en-label="Learning path">
+      <li data-n="01" data-en="<b>Watch</b>build intuition"><b>看视频</b>建立直觉</li>
+      <li data-n="02" data-en="<b>Read the paper</b>Dean &amp; Ghemawat, OSDI 2004"><b>读论文</b>Dean &amp; Ghemawat, OSDI 2004</li>
+      <li data-n="03" class="here" data-en="<b>Experiment</b>this page"><b>做实验</b>就是这一页</li>
+      <li data-n="04" data-en="<b>Write Lab 1</b>coordinator.go and worker.go"><b>写 Lab 1</b>coordinator.go 与 worker.go</li>
     </ol>
   </header>
 
 
   <section class="analogy" aria-labelledby="ana-h">
-    <div class="sec-head"><h2 id="ana-h">先看懂这个比喻</h2><p>老师请几位助教，统计一大堆作文里每个词出现了几次。页面上的每个术语，都对应这个场景里的一样东西。</p></div>
-    <div class="ana-grid"><div class="ana"><b>老师</b><span>Coordinator · 协调者</span><p>派活、记账。谁领了什么活、谁做完了、谁失联了，都记在本子上。</p></div><div class="ana"><b>助教</b><span>Worker</span><p>真正干活的人。会突然联系不上（宕机），也可能动作特别慢（慢机器）。</p></div><div class="ana"><b>一摞作文</b><span>输入分片 · Map 任务</span><p>整堆作文分成几摞，每摞交给一位助教去数。</p></div><div class="ana"><b>数一摞作文</b><span>Map</span><p>把这摞作文里的每个词都记一笔：the 1、cat 1……</p></div><div class="ana"><b>收纳盒</b><span>分区 · Reduce 任务</span><p>按固定规则（ihash(key) % R）把词分进几个盒子，同一个词永远进同一个盒子。</p></div><div class="ana"><b>助教的抽屉</b><span>本地磁盘 · 中间文件 mr-X-Y</span><p>数好的结果先放自己抽屉里。人一失联，抽屉就打不开了。</p></div><div class="ana"><b>汇总一个盒子</b><span>Reduce</span><p>一位助教把各摞作文在这个盒子里的统计收齐，同一个词的次数加起来。</p></div><div class="ana"><b>公告栏</b><span>GFS · 输出文件 mr-out-Y</span><p>最终结果贴在这里，大家都看得到，还有备份，不怕谁失联。</p></div><div class="ana"><b>联系不上</b><span>Worker 宕机 · 超时重新分配</span><p>老师分不清他是走了还是只是慢，只能等一会儿，再把活交给别人。</p></div><div class="ana"><b>草稿纸</b><span>临时文件 · 原子重命名</span><p>先在草稿纸上写完，再一次性贴上公告栏，别人永远看不到写了一半的结果。</p></div></div>
+    <div class="sec-head"><h2 id="ana-h" data-en="First, the analogy">先看懂这个比喻</h2><p data-en="A teacher asks a few helpers to count how often each word appears in a big pile of essays. Every term on this page maps to one thing in that scene.">老师请几位助教，统计一大堆作文里每个词出现了几次。页面上的每个术语，都对应这个场景里的一样东西。</p></div>
+    <div class="ana-grid"><div class="ana" data-en="<b>Teacher</b><span>Coordinator</span><p>Hands out work and keeps the books: who took what, who finished, who went missing.</p>"><b>老师</b><span>Coordinator · 协调者</span><p>派活、记账。谁领了什么活、谁做完了、谁失联了，都记在本子上。</p></div><div class="ana" data-en="<b>Helper</b><span>Worker</span><p>Does the actual work. Can suddenly become unreachable (a crash), or work very slowly (a slow machine).</p>"><b>助教</b><span>Worker</span><p>真正干活的人。会突然联系不上（宕机），也可能动作特别慢（慢机器）。</p></div><div class="ana" data-en="<b>A stack of essays</b><span>Input split · Map task</span><p>The pile is split into stacks, and each stack goes to one helper to count.</p>"><b>一摞作文</b><span>输入分片 · Map 任务</span><p>整堆作文分成几摞，每摞交给一位助教去数。</p></div><div class="ana" data-en="<b>Counting a stack</b><span>Map</span><p>Make a tally mark for every word in the stack: the 1, cat 1…</p>"><b>数一摞作文</b><span>Map</span><p>把这摞作文里的每个词都记一笔：the 1、cat 1……</p></div><div class="ana" data-en="<b>Sorting boxes</b><span>Partition · Reduce task</span><p>Words go into boxes by a fixed rule (ihash(key) % R); the same word always lands in the same box.</p>"><b>收纳盒</b><span>分区 · Reduce 任务</span><p>按固定规则（ihash(key) % R）把词分进几个盒子，同一个词永远进同一个盒子。</p></div><div class="ana" data-en="<b>The helper’s drawer</b><span>Local disk · intermediate files mr-X-Y</span><p>Counted results go in the helper’s own drawer first. Once the helper is gone, nobody can open it.</p>"><b>助教的抽屉</b><span>本地磁盘 · 中间文件 mr-X-Y</span><p>数好的结果先放自己抽屉里。人一失联，抽屉就打不开了。</p></div><div class="ana" data-en="<b>Totalling a box</b><span>Reduce</span><p>One helper gathers every stack’s tallies for this box and adds up the counts for each word.</p>"><b>汇总一个盒子</b><span>Reduce</span><p>一位助教把各摞作文在这个盒子里的统计收齐，同一个词的次数加起来。</p></div><div class="ana" data-en="<b>Notice board</b><span>GFS · output files mr-out-Y</span><p>Final results are posted here for everyone to see, with backups, so no single person going missing matters.</p>"><b>公告栏</b><span>GFS · 输出文件 mr-out-Y</span><p>最终结果贴在这里，大家都看得到，还有备份，不怕谁失联。</p></div><div class="ana" data-en="<b>Unreachable</b><span>Worker crash · reassign on timeout</span><p>The teacher can’t tell whether the helper left or is just slow, so waits a while, then gives the work to someone else.</p>"><b>联系不上</b><span>Worker 宕机 · 超时重新分配</span><p>老师分不清他是走了还是只是慢，只能等一会儿，再把活交给别人。</p></div><div class="ana" data-en="<b>Scratch paper</b><span>Temp file · atomic rename</span><p>Finish on scratch paper, then pin it to the board in one go, so nobody ever sees a half-written result.</p>"><b>草稿纸</b><span>临时文件 · 原子重命名</span><p>先在草稿纸上写完，再一次性贴上公告栏，别人永远看不到写了一半的结果。</p></div></div>
   </section>
 
   <section class="lab" id="lab" aria-labelledby="lab-h">
-    <div class="sec-head"><h2 id="lab-h">模拟器</h2><p>点助教卡片上的「让它宕机」，就是让这位助教突然联系不上；再点一次「重启」，他就回来了。改动参数后会自动重新开始。</p></div>
+    <div class="sec-head"><h2 id="lab-h" data-en="Simulator">模拟器</h2><p data-en="Press “Crash it” on a helper’s card to make that helper suddenly unreachable; press “Restart” to bring them back. Changing a setting restarts the run.">点助教卡片上的「让它宕机」，就是让这位助教突然联系不上；再点一次「重启」，他就回来了。改动参数后会自动重新开始。</p></div>
 
-    <div class="bar" role="toolbar" aria-label="播放控制">
+    <div class="bar" role="toolbar" aria-label="播放控制" data-en-label="Playback">
       <button class="btn primary" id="play" type="button">播放</button>
-      <button class="btn" id="step" type="button">单步 +0.5 秒</button>
-      <button class="btn" id="reset" type="button">重置</button>
-      <div class="seg" id="speed" role="group" aria-label="速度">
+      <button class="btn" id="step" type="button" data-en="Step +0.5 s">单步 +0.5 秒</button>
+      <button class="btn" id="reset" type="button" data-en="Reset">重置</button>
+      <div class="seg" id="speed" role="group" aria-label="速度" data-en-label="Speed">
         <button type="button" data-s="0.5">0.5×</button><button type="button" data-s="1" class="on">1×</button><button type="button" data-s="2">2×</button><button type="button" data-s="4">4×</button>
       </div>
       <div class="clock"><span class="phase" id="phase">准备</span><span class="t" id="clock">0.0 <small>秒</small></span></div>
@@ -307,79 +318,79 @@ footer{font-size:13px; color:var(--faint); border-top:1px solid var(--edge); pad
 
     <div class="settings">
       <div class="field">
-        <label for="splits">输入文本 · 每行是一摞作文，也就是一个 Map 任务（2 到 6 行）</label>
+        <label for="splits" data-en="Input text · each line is one stack of essays, i.e. one Map task (2 to 6 lines)">输入文本 · 每行是一摞作文，也就是一个 Map 任务（2 到 6 行）</label>
         <textarea id="splits" spellcheck="false"></textarea>
         <p class="script" id="script"></p>
       </div>
       <div class="field">
         <div class="grid2">
-          <div class="field"><label for="optR">收纳盒个数 · Reduce 任务数 R</label><select id="optR"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
-          <div class="field"><label for="optW">助教人数 · Worker 数</label><select id="optW"><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
-          <div class="field" style="grid-column:1/-1"><label for="optSlow">慢助教 · 慢机器（速度只有别人的 1/4）</label><select id="optSlow"></select></div>
+          <div class="field"><label for="optR" data-en="Boxes · number of Reduce tasks R">收纳盒个数 · Reduce 任务数 R</label><select id="optR"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
+          <div class="field"><label for="optW" data-en="Helpers · number of workers">助教人数 · Worker 数</label><select id="optW"><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
+          <div class="field" style="grid-column:1/-1"><label for="optSlow" data-en="Slow helper · slow machine (a quarter of normal speed)">慢助教 · 慢机器（速度只有别人的 1/4）</label><select id="optSlow"></select></div>
         </div>
         <div style="margin-top:8px">
-          <label class="switch" for="optAtomic"><span>用草稿纸 · 原子重命名<small>先在草稿纸上写完，再一次性贴上公告栏（os.Rename）。关掉后，大家直接在公告栏上边擦边写</small></span><input type="checkbox" id="optAtomic" checked></label>
-          <label class="switch" for="optBackup"><span>找替补 · 备份任务<small>快结束时，闲着的助教把还没做完的活再做一份，谁先做完用谁的</small></span><input type="checkbox" id="optBackup"></label>
-          <label class="switch" for="optComb"><span>先自己合计 · Combiner<small>数完一摞后先合计：the 出现 3 次就写一张「the 3」，不写三张「the 1」</small></span><input type="checkbox" id="optComb"></label>
+          <label class="switch" for="optAtomic"><span data-en="Use scratch paper · atomic rename<small>Finish on scratch paper, then pin it to the board in one go (os.Rename). Turned off, helpers erase and write directly on the board</small>">用草稿纸 · 原子重命名<small>先在草稿纸上写完，再一次性贴上公告栏（os.Rename）。关掉后，大家直接在公告栏上边擦边写</small></span><input type="checkbox" id="optAtomic" checked></label>
+          <label class="switch" for="optBackup"><span data-en="Call in backups · backup tasks<small>Near the end, idle helpers redo unfinished work; whoever finishes first wins</small>">找替补 · 备份任务<small>快结束时，闲着的助教把还没做完的活再做一份，谁先做完用谁的</small></span><input type="checkbox" id="optBackup"></label>
+          <label class="switch" for="optComb"><span data-en="Tally first · Combiner<small>After counting a stack, tally it up: if “the” appears 3 times, write one “the 3” instead of three “the 1”</small>">先自己合计 · Combiner<small>数完一摞后先合计：the 出现 3 次就写一张「the 3」，不写三张「the 1」</small></span><input type="checkbox" id="optComb"></label>
         </div>
       </div>
       <div class="hashcalc">
-        <div class="field"><label for="hashw">分区计算器 · 这个词会进哪个盒子</label><input type="text" id="hashw" value="the" autocomplete="off"></div>
+        <div class="field"><label for="hashw" data-en="Partition calculator · which box does this word go to">分区计算器 · 这个词会进哪个盒子</label><input type="text" id="hashw" value="the" autocomplete="off"></div>
         <div class="hashout" id="hashout"></div>
-        <p class="consts">正常情况下，数一摞作文或汇总一个盒子各要 3 秒。活交出去超过 10 秒还没交回，老师就把它重新分出去；助教 4 秒没有回音，老师就认定他失联了。按论文的做法，数好的结果放在助教自己的抽屉里（本地磁盘），他一失联，别人就拿不到。</p>
+        <p class="consts" data-en="Normally, counting a stack or totalling a box takes 3 seconds each. Work not handed back within 10 seconds is given out again; a helper silent for 4 seconds is considered unreachable. As in the paper, counted results stay in the helper’s own drawer (local disk), so once the helper is unreachable, nobody else can get them.">正常情况下，数一摞作文或汇总一个盒子各要 3 秒。活交出去超过 10 秒还没交回，老师就把它重新分出去；助教 4 秒没有回音，老师就认定他失联了。按论文的做法，数好的结果放在助教自己的抽屉里（本地磁盘），他一失联，别人就拿不到。</p>
       </div>
     </div>
 
     <div class="coord">
-      <div class="coord-id"><b>Coordinator</b><span>老师 · 负责派活和记账（论文里叫 master）</span></div>
+      <div class="coord-id"><b>Coordinator</b><span data-en="The teacher · hands out work and keeps the books (the paper calls it the master)">老师 · 负责派活和记账（论文里叫 master）</span></div>
       <div class="tasks" id="tasks"></div>
       <dl class="stats">
-        <div title="各个盒子从助教那里收集来的统计条数"><dt>Shuffle 条数</dt><dd id="stShuffle">0</dd></div>
-        <div><dt>执行次数</dt><dd id="stTries">0</dd></div>
-        <div><dt>完成用时</dt><dd id="stDone">—</dd></div>
+        <div title="各个盒子从助教那里收集来的统计条数" data-en-title="Tallies the boxes collected from the helpers"><dt data-en="Shuffled pairs">Shuffle 条数</dt><dd id="stShuffle">0</dd></div>
+        <div><dt data-en="Task runs">执行次数</dt><dd id="stTries">0</dd></div>
+        <div><dt data-en="Finished in">完成用时</dt><dd id="stDone">—</dd></div>
       </dl>
-      <div class="ticker"><span class="k">最新</span><span id="ticker">按「播放」开始。</span></div>
+      <div class="ticker"><span class="k" data-en="Latest">最新</span><span id="ticker">按「播放」开始。</span></div>
     </div>
 
     <div class="stage" id="stage">
-      <div class="col"><h3>输入分片 <em>一摞摞作文</em></h3><div id="colIn" class="col"></div></div>
-      <div class="col"><h3>Worker <em>助教和他的抽屉</em></h3><div id="colW" class="col"></div></div>
-      <div class="col"><h3>中间文件 <em>分好盒的统计 · mr-X-Y</em></h3><div style="overflow-x:auto; padding:5px"><table class="mtx" id="mtx"></table></div><p class="mid-note">每一行是一摞作文（Map 任务 X）数出来的结果，已经按词分进了不同的盒子；每一列就是一个盒子（Reduce 任务 Y），由一位助教来汇总。颜色一直延续到右边的公告栏。</p></div>
-      <div class="col"><h3>输出 <em>公告栏 · GFS</em></h3><div id="colOut" class="col"></div></div>
+      <div class="col"><h3 data-en="Input splits <em>stacks of essays</em>">输入分片 <em>一摞摞作文</em></h3><div id="colIn" class="col"></div></div>
+      <div class="col"><h3 data-en="Workers <em>helpers and their drawers</em>">Worker <em>助教和他的抽屉</em></h3><div id="colW" class="col"></div></div>
+      <div class="col"><h3 data-en="Intermediate files <em>tallies sorted into boxes · mr-X-Y</em>">中间文件 <em>分好盒的统计 · mr-X-Y</em></h3><div style="overflow-x:auto; padding:5px"><table class="mtx" id="mtx"></table></div><p class="mid-note" data-en="Each row is what one stack (Map task X) produced, already sorted into boxes by word; each column is one box (Reduce task Y), totalled by one helper. The colors carry through to the notice board on the right.">每一行是一摞作文（Map 任务 X）数出来的结果，已经按词分进了不同的盒子；每一列就是一个盒子（Reduce 任务 Y），由一位助教来汇总。颜色一直延续到右边的公告栏。</p></div>
+      <div class="col"><h3 data-en="Output <em>notice board · GFS</em>">输出 <em>公告栏 · GFS</em></h3><div id="colOut" class="col"></div></div>
       <div class="fx" id="fx" aria-hidden="true"></div>
     </div>
 
     <div class="below">
-      <div class="panel"><div class="panel-h"><h3>事件日志</h3><div class="seg" id="talk" role="group" aria-label="说法"><button type="button" data-m="plain">大白话</button><button type="button" data-m="term">术语</button></div></div><ol class="log" id="log" aria-live="polite"></ol></div>
-      <div class="panel verdict" id="verdict"><h3>结果校验</h3><p>统计结束后，这里会把公告栏上的结果，和一个人从头数一遍得到的正确答案逐行比对。</p></div>
+      <div class="panel"><div class="panel-h"><h3 data-en="Event log">事件日志</h3><div class="seg" id="talk" role="group" aria-label="说法" data-en-label="Wording"><button type="button" data-m="plain" data-en="Plain words">大白话</button><button type="button" data-m="term" data-en="Terms">术语</button></div></div><ol class="log" id="log" aria-live="polite"></ol></div>
+      <div class="panel verdict" id="verdict"></div>
     </div>
   </section>
 
   <section aria-labelledby="qs-h">
-    <div class="sec-head"><h2 id="qs-h">先预测，再验证</h2><p>每道题先凭直觉选一个答案，再在模拟器里运行同样的场景，看看你猜得对不对。猜错的题最有收获。</p></div>
+    <div class="sec-head"><h2 id="qs-h" data-en="Predict, then check">先预测，再验证</h2><p data-en="For each question, pick an answer on instinct first, then run the same scenario in the simulator and see whether you were right. The ones you get wrong teach the most.">每道题先凭直觉选一个答案，再在模拟器里运行同样的场景，看看你猜得对不对。猜错的题最有收获。</p></div>
     <div class="qs" id="qs"></div>
   </section>
 
   <section aria-labelledby="map-h">
-    <div class="sec-head"><h2 id="map-h">对照 Lab 1</h2><p>模拟器里看到的每个机制，在 Lab 1 里都要你自己写出来。</p></div>
+    <div class="sec-head"><h2 id="map-h" data-en="Mapping to Lab 1">对照 Lab 1</h2><p data-en="Every mechanism you see in the simulator is something you write yourself in Lab 1.">模拟器里看到的每个机制，在 Lab 1 里都要你自己写出来。</p></div>
     <div class="tbl-wrap">
       <table class="map">
-        <thead><tr><th>模拟器里的现象</th><th>Lab 1 里你要写的</th><th>常见的坑</th></tr></thead>
+        <thead><tr><th data-en="In the simulator">模拟器里的现象</th><th data-en="What you write in Lab 1">Lab 1 里你要写的</th><th data-en="Common traps">常见的坑</th></tr></thead>
         <tbody>
-          <tr><td>worker 请求任务</td><td>worker 循环调用 RPC 向协调者要任务。RPC 的名字和参数由你自己定义，写在 <code>mr/rpc.go</code>。</td><td class="trap">拿不到任务时不 sleep，疯狂轮询</td></tr>
-          <tr><td>Map 写出 mr-X-Y</td><td>用 <code>ihash(key) % nReduce</code> 选桶，用 <code>json.NewEncoder</code> 把键值对写进 nReduce 个文件。</td><td class="trap">只写一个文件，或者忘了按桶分</td></tr>
-          <tr><td>Reduce 等所有 Map</td><td>协调者在全部 Map 完成之前不发 Reduce 任务，让 worker 先等待。</td><td class="trap">Reduce 提前开始，结果少了词</td></tr>
-          <tr><td>超时重新分配</td><td>协调者记录每个任务的开始时间，超过 10 秒没完成就重新设为待分配。</td><td class="trap">只在 worker 报告失败时重发，可宕机的 worker 不会报告</td></tr>
-          <tr><td>原子重命名</td><td><code>os.CreateTemp</code> 写临时文件，完成后 <code>os.Rename</code> 成最终文件名。</td><td class="trap">直接 <code>os.Create("mr-out-Y")</code></td></tr>
-          <tr><td>多个 worker 同时访问</td><td>协调者的共享状态用 <code>sync.Mutex</code> 保护，每个 RPC handler 里加锁。</td><td class="trap">忘了加锁，<code>go run -race</code> 报数据竞争</td></tr>
-          <tr><td>作业结束</td><td>协调者的 <code>Done()</code> 返回 true；worker 收到退出指令或联系不上协调者时退出。</td><td class="trap">worker 不退出，测试超时</td></tr>
+          <tr><td data-en="A worker asks for a task">worker 请求任务</td><td data-en="The worker calls an RPC in a loop to ask the coordinator for tasks. You define the RPC’s name and arguments yourself, in <code>mr/rpc.go</code>.">worker 循环调用 RPC 向协调者要任务。RPC 的名字和参数由你自己定义，写在 <code>mr/rpc.go</code>。</td><td class="trap" data-en="Not sleeping when there is no task, and polling like mad">拿不到任务时不 sleep，疯狂轮询</td></tr>
+          <tr><td data-en="Map writes mr-X-Y">Map 写出 mr-X-Y</td><td data-en="Pick the bucket with <code>ihash(key) % nReduce</code> and write the pairs into nReduce files with <code>json.NewEncoder</code>.">用 <code>ihash(key) % nReduce</code> 选桶，用 <code>json.NewEncoder</code> 把键值对写进 nReduce 个文件。</td><td class="trap" data-en="Writing only one file, or forgetting to split by bucket">只写一个文件，或者忘了按桶分</td></tr>
+          <tr><td data-en="Reduce waits for every Map">Reduce 等所有 Map</td><td data-en="The coordinator hands out no Reduce task until every Map is done; meanwhile workers wait.">协调者在全部 Map 完成之前不发 Reduce 任务，让 worker 先等待。</td><td class="trap" data-en="Reduce starts early and words go missing">Reduce 提前开始，结果少了词</td></tr>
+          <tr><td data-en="Reassign on timeout">超时重新分配</td><td data-en="The coordinator records each task’s start time and puts it back to idle if it isn’t done within 10 seconds.">协调者记录每个任务的开始时间，超过 10 秒没完成就重新设为待分配。</td><td class="trap" data-en="Resending only when a worker reports failure, but a crashed worker reports nothing">只在 worker 报告失败时重发，可宕机的 worker 不会报告</td></tr>
+          <tr><td data-en="Atomic rename">原子重命名</td><td data-en="Write a temp file with <code>os.CreateTemp</code>, then <code>os.Rename</code> it to the final name when done."><code>os.CreateTemp</code> 写临时文件，完成后 <code>os.Rename</code> 成最终文件名。</td><td class="trap" data-en="Calling <code>os.Create(&quot;mr-out-Y&quot;)</code> directly">直接 <code>os.Create("mr-out-Y")</code></td></tr>
+          <tr><td data-en="Several workers at once">多个 worker 同时访问</td><td data-en="Guard the coordinator’s shared state with a <code>sync.Mutex</code>, locking in every RPC handler.">协调者的共享状态用 <code>sync.Mutex</code> 保护，每个 RPC handler 里加锁。</td><td class="trap" data-en="Forgetting the lock, so <code>go run -race</code> reports a data race">忘了加锁，<code>go run -race</code> 报数据竞争</td></tr>
+          <tr><td data-en="The job ends">作业结束</td><td data-en="The coordinator’s <code>Done()</code> returns true; a worker exits when told to or when it can’t reach the coordinator.">协调者的 <code>Done()</code> 返回 true；worker 收到退出指令或联系不上协调者时退出。</td><td class="trap" data-en="Workers never exit and the test times out">worker 不退出，测试超时</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">有一点和论文不同：Lab 1 的所有进程跑在同一台机器上，中间文件就放在当前目录，所以 worker 宕机不会丢中间文件。模拟器按论文的做法，把中间文件放在 worker 的本地磁盘上，这样你能看到"已完成的 Map 也要重跑"这个现象。</p>
+    <p class="note" data-en="One difference from the paper: in Lab 1 every process runs on the same machine and intermediate files sit in the current directory, so a worker crash loses no intermediate files. The simulator follows the paper and keeps intermediate files on the worker’s local disk, so you can see why “completed Maps must be re-run too”.">有一点和论文不同：Lab 1 的所有进程跑在同一台机器上，中间文件就放在当前目录，所以 worker 宕机不会丢中间文件。模拟器按论文的做法，把中间文件放在 worker 的本地磁盘上，这样你能看到"已完成的 Map 也要重跑"这个现象。</p>
   </section>
 
-  <footer>参考：Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large Clusters. OSDI 2004 · MIT 6.5840 Lab 1。分区函数与 Lab 1 的 ihash 相同（FNV-1a 32 位）。</footer>
+  <footer data-en="References: Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large Clusters. OSDI 2004 · MIT 6.5840 Lab 1. The partition function is the same as Lab 1’s ihash (32-bit FNV-1a).">参考：Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large Clusters. OSDI 2004 · MIT 6.5840 Lab 1。分区函数与 Lab 1 的 ihash 相同（FNV-1a 32 位）。</footer>
 </div>
 
 <script>
@@ -412,32 +423,32 @@ function createSim(cfg){
 }
 function log(S, kind, text, who, plain){ if (plain) plain = plain.replace(/([\u4e00-\u9fff）])\s+(?=[\u4e00-\u9fff（])/g, '$1'); S.log.push({t:S.t, kind, text, who, plain}); }
 // plain-language names for the story: a teacher (coordinator) and helpers (workers) counting words in piles of essays
-const PW = i => `助教 W${i+1}`;
-const PT = t => t.kind === 'map' ? `M${t.id} 这摞作文` : `${t.id} 号盒子的汇总（R${t.id}）`;
+const PW = i => L(`助教 W${i+1}`, `helper W${i+1}`);
+const PT = t => t.kind === 'map' ? L(`M${t.id} 这摞作文`, `stack M${t.id}`) : L(`${t.id} 号盒子的汇总（R${t.id}）`, `the total for box ${t.id} (R${t.id})`);
 function crash(S, wi){
   const w = S.workers[wi]; if (!w || !w.alive) return;
   const j = w.job; w.alive = false; w.waiting = false; w.job = null; w.exited = false;
-  log(S, 'bad', `W${wi+1} 宕机${j ? `，正在执行的 ${tname(j)} 中断了` : ''}`, 'worker', `${PW(wi)} 突然联系不上了${j ? `，手上的 ${PT(j)} 做到一半` : ''}`);
+  log(S, 'bad', L(`W${wi+1} 宕机${j ? `，正在执行的 ${tname(j)} 中断了` : ''}`, `W${wi+1} crashed${j ? `; its running ${tname(j)} was cut off` : ''}`), 'worker', L(`${PW(wi)} 突然联系不上了${j ? `，手上的 ${PT(j)} 做到一半` : ''}`, `${PW(wi)} suddenly can't be reached${j ? `, halfway through ${PT(j)}` : ''}`));
   S.fx.push({type:'crash', w:wi});
 }
 function revive(S, wi){
   const w = S.workers[wi]; if (!w || w.alive) return;
   if (!w.declared) declareDead(S, wi, true);
   w.alive = true; w.declared = false; w.disk = {}; w.lastSeen = S.t; w.exited = false; w.waiting = false;
-  log(S, 'info', `W${wi+1} 重启，本地磁盘已清空，重新向协调者要任务`, 'worker', `${PW(wi)} 回来了，但抽屉里的东西全没了，重新找老师要活`);
+  log(S, 'info', L(`W${wi+1} 重启，本地磁盘已清空，重新向协调者要任务`, `W${wi+1} restarted with an empty local disk and asks the coordinator for work again`), 'worker', L(`${PW(wi)} 回来了，但抽屉里的东西全没了，重新找老师要活`, `${PW(wi)} is back, but the drawer is empty; asking the teacher for work again`));
 }
 function declareDead(S, wi, restart){
   const w = S.workers[wi]; w.declared = true;
-  log(S, 'bad', restart ? `W${wi+1} 重新注册，协调者按宕机处理它之前的任务` : `W${wi+1} 已经 ${K.DETECT} 秒没有响应，协调者判定它宕机`, 'coord',
-    restart ? `${PW(wi)} 回来报到，老师把他之前经手的活都当作没做` : `${PW(wi)} 已经 ${K.DETECT} 秒没回音，老师认定他失联了`);
+  log(S, 'bad', restart ? L(`W${wi+1} 重新注册，协调者按宕机处理它之前的任务`, `W${wi+1} re-registered; the coordinator treats its earlier tasks as crashed`) : L(`W${wi+1} 已经 ${K.DETECT} 秒没有响应，协调者判定它宕机`, `W${wi+1} has not responded for ${K.DETECT} s; the coordinator declares it crashed`), 'coord',
+    restart ? L(`${PW(wi)} 回来报到，老师把他之前经手的活都当作没做`, `${PW(wi)} checks back in; the teacher treats everything they had as not done`) : L(`${PW(wi)} 已经 ${K.DETECT} 秒没回音，老师认定他失联了`, `${PW(wi)} has been silent for ${K.DETECT} s; the teacher decides they're unreachable`));
   for (const tk of [...S.maps, ...S.reds]){
     const n = tk.runs.length; tk.runs = tk.runs.filter(r => r.w !== wi);
-    if (n !== tk.runs.length && tk.state === 'prog' && !tk.runs.length){ tk.state = 'idle'; log(S, 'warn', `${tname(tk)} 重新变为待分配`, 'coord', `${PT(tk)} 退回待分配，等下一位空闲的助教来领`); }
+    if (n !== tk.runs.length && tk.state === 'prog' && !tk.runs.length){ tk.state = 'idle'; log(S, 'warn', L(`${tname(tk)} 重新变为待分配`, `${tname(tk)} is idle again`), 'coord', L(`${PT(tk)} 退回待分配，等下一位空闲的助教来领`, `${PT(tk)} goes back to the to-do pile for the next free helper`)); }
   }
   if (!S.reds.every(r => r.state === 'done'))
     for (const m of S.maps) if (m.state === 'done' && m.loc === wi){
       m.state = 'idle'; m.loc = -1;
-      log(S, 'warn', `M${m.id} 的输出在 W${wi+1} 的本地磁盘上，已经读不到，M${m.id} 要重新执行`, 'coord', `M${m.id} 这摞作文的统计结果锁在 ${PW(wi)} 的抽屉里，拿不到了，只能请别人重新数一遍`);
+      log(S, 'warn', L(`M${m.id} 的输出在 W${wi+1} 的本地磁盘上，已经读不到，M${m.id} 要重新执行`, `M${m.id}'s output is on W${wi+1}'s local disk and can't be read; M${m.id} must run again`), 'coord', L(`M${m.id} 这摞作文的统计结果锁在 ${PW(wi)} 的抽屉里，拿不到了，只能请别人重新数一遍`, `The tally for stack M${m.id} is locked in ${PW(wi)}'s drawer; someone has to count it again`));
       S.fx.push({type:'lost', x:m.id});
       cancelStarved(S, m.id);
     }
@@ -446,7 +457,7 @@ function cancelStarved(S, x){
   for (const w of S.workers){
     const j = w.job; if (!w.alive || !j || j.kind !== 'reduce' || !j.fetching || j.fetched.has(x)) continue;
     w.job = null; const tk = S.reds[j.id]; tk.runs = tk.runs.filter(r => r.w !== w.id); if (!tk.runs.length && tk.state !== 'done') tk.state = 'idle';
-    log(S, 'warn', `W${w.id+1} 拿不到 mr-${x}-${j.id}，放弃这次 R${j.id}，等 M${x} 重做`, 'worker', `${PW(w.id)} 拿不到 M${x} 这摞作文的统计，${j.id} 号盒子没法汇总，先放下，等 M${x} 重数完再说`);
+    log(S, 'warn', L(`W${w.id+1} 拿不到 mr-${x}-${j.id}，放弃这次 R${j.id}，等 M${x} 重做`, `W${w.id+1} can't get mr-${x}-${j.id}; it drops this R${j.id} until M${x} is redone`), 'worker', L(`${PW(w.id)} 拿不到 M${x} 这摞作文的统计，${j.id} 号盒子没法汇总，先放下，等 M${x} 重数完再说`, `${PW(w.id)} can't get the tally for stack M${x}, so box ${j.id} can't be totalled; it waits until M${x} is recounted`));
   }
 }
 function reduceLines(pairs){ const m = new Map(); for (const [k,v] of pairs) m.set(k, (m.get(k) || 0) + v); return [...m.keys()].sort(cmp).map(k => `${k} ${m.get(k)}`); }
@@ -458,17 +469,17 @@ function finish(S, w){
   if (j.kind === 'map'){
     for (let y = 0; y < S.R; y++) w.disk[`${j.id}-${y}`] = S.mapOut[j.id][y];
     const tk = S.maps[j.id]; tk.runs = tk.runs.filter(r => r.w !== w.id);
-    if (tk.state === 'done') log(S, 'muted', `W${w.id+1} 也做完了 M${j.id}，但 M${j.id} 已经完成过，协调者忽略这次报告`, 'coord', `${PW(w.id)} 也数完了 M${j.id}，但已经有人交过了，老师不再收这一份`);
-    else { tk.state = 'done'; tk.loc = w.id; log(S, 'ok', `W${w.id+1} 完成 M${j.id}，把 mr-${j.id}-* 写到本地磁盘`, 'worker', `${PW(w.id)} 数完了 M${j.id}，把结果按词分进 ${S.R} 个盒子，先放在自己抽屉里`); }
+    if (tk.state === 'done') log(S, 'muted', L(`W${w.id+1} 也做完了 M${j.id}，但 M${j.id} 已经完成过，协调者忽略这次报告`, `W${w.id+1} also finished M${j.id}, but M${j.id} was already done; the coordinator ignores the report`), 'coord', L(`${PW(w.id)} 也数完了 M${j.id}，但已经有人交过了，老师不再收这一份`, `${PW(w.id)} also finished counting M${j.id}, but someone already handed it in; the teacher doesn't take this copy`));
+    else { tk.state = 'done'; tk.loc = w.id; log(S, 'ok', L(`W${w.id+1} 完成 M${j.id}，把 mr-${j.id}-* 写到本地磁盘`, `W${w.id+1} finished M${j.id} and wrote mr-${j.id}-* to its local disk`), 'worker', L(`${PW(w.id)} 数完了 M${j.id}，把结果按词分进 ${S.R} 个盒子，先放在自己抽屉里`, `${PW(w.id)} finished counting M${j.id}, sorted the tally into ${S.R} boxes and put it in their drawer`)); }
     S.fx.push({type:'mapdone', x:j.id, w:w.id});
     fireOn(S, 'mapDone', j.id, w.id);
   } else {
     const o = S.outs[j.id];
-    if (S.cfg.atomic){ o.lines = j.lines.slice(); o.state = 'done'; o.rev++; log(S, 'ok', `W${w.id+1} 执行 os.Rename(tmp, "mr-out-${j.id}")，文件完整出现`, 'worker', `${PW(w.id)} 把草稿纸上的 ${j.id} 号盒子汇总一次性贴上公告栏，内容完整`); }
-    else { o.state = 'done'; o.rev++; log(S, 'ok', `W${w.id+1} 写完 mr-out-${j.id}`, 'worker', `${PW(w.id)} 在 ${j.id} 号公告栏上写完了`); }
+    if (S.cfg.atomic){ o.lines = j.lines.slice(); o.state = 'done'; o.rev++; log(S, 'ok', L(`W${w.id+1} 执行 os.Rename(tmp, "mr-out-${j.id}")，文件完整出现`, `W${w.id+1} ran os.Rename(tmp, "mr-out-${j.id}"); the file appears whole`), 'worker', L(`${PW(w.id)} 把草稿纸上的 ${j.id} 号盒子汇总一次性贴上公告栏，内容完整`, `${PW(w.id)} pins the scratch-paper total for box ${j.id} to the board in one go, complete`)); }
+    else { o.state = 'done'; o.rev++; log(S, 'ok', L(`W${w.id+1} 写完 mr-out-${j.id}`, `W${w.id+1} finished writing mr-out-${j.id}`), 'worker', L(`${PW(w.id)} 在 ${j.id} 号公告栏上写完了`, `${PW(w.id)} finished writing on board ${j.id}`)); }
     S.fx.push({type:'rename', y:j.id, w:w.id});
     const tk = S.reds[j.id]; tk.runs = tk.runs.filter(r => r.w !== w.id);
-    if (tk.state === 'done') log(S, 'muted', `R${j.id} 早已完成，协调者忽略 W${w.id+1} 的重复报告`, 'coord', `${j.id} 号盒子早就汇总完了，老师不再收 ${PW(w.id)} 这份重复的结果`); else tk.state = 'done';
+    if (tk.state === 'done') log(S, 'muted', L(`R${j.id} 早已完成，协调者忽略 W${w.id+1} 的重复报告`, `R${j.id} was done long ago; the coordinator ignores W${w.id+1}'s duplicate report`), 'coord', L(`${j.id} 号盒子早就汇总完了，老师不再收 ${PW(w.id)} 这份重复的结果`, `Box ${j.id} was totalled long ago; the teacher doesn't take ${PW(w.id)}'s duplicate`)); else tk.state = 'done';
     fireOn(S, 'reduceDone', j.id, w.id);
   }
 }
@@ -482,14 +493,14 @@ function assign(S, w){
   }
   if (!tk){
     if (mapsDone && S.reds.every(r => r.state === 'done')) w.exited = true;
-    else if (!w.waiting){ w.waiting = true; log(S, 'muted', `W${w.id+1} 请求任务，${mapsDone ? '没有待分配的 Reduce' : 'Map 都已分出但还没全部完成，Reduce 不能开始'}，先等待`, 'coord',
-      `${PW(w.id)} 来要活：${mapsDone ? '汇总的活都分出去了' : '作文都分出去了，但还有人没数完，现在不能开始汇总'}，先等一会儿`); }
+    else if (!w.waiting){ w.waiting = true; log(S, 'muted', L(`W${w.id+1} 请求任务，${mapsDone ? '没有待分配的 Reduce' : 'Map 都已分出但还没全部完成，Reduce 不能开始'}，先等待`, `W${w.id+1} asks for a task: ${mapsDone ? 'no idle Reduce' : 'every Map is handed out but not all are done, so Reduce cannot start'}; it waits`), 'coord',
+      L(`${PW(w.id)} 来要活：${mapsDone ? '汇总的活都分出去了' : '作文都分出去了，但还有人没数完，现在不能开始汇总'}，先等一会儿`, `${PW(w.id)} asks for work: ${mapsDone ? 'all the totalling is handed out' : 'every stack is handed out, but someone is still counting, so totalling cannot start yet'}; wait a bit`)); }
     return;
   }
   w.waiting = false; tk.state = 'prog'; tk.runs.push({w:w.id, start:S.t}); tk.tries++;
   w.job = {kind:tk.kind, id:tk.id, progress:0, fetching:tk.kind === 'reduce', fetched:new Set(), pairs:[], lines:null, written:0, start:S.t};
-  log(S, backup ? 'warn' : 'info', backup ? `${tname(tk)} 还在运行，协调者启动一份备份交给 W${w.id+1}` : `把 ${tname(tk)} 分配给 W${w.id+1}${tk.tries > 1 ? `（第 ${tk.tries} 次执行）` : ''}`, 'coord',
-    backup ? `${PT(tk)} 还没做完，老师请 ${PW(w.id)} 同时也做一份，谁先做完用谁的` : `老师把 ${PT(tk)} 交给 ${PW(w.id)}${tk.tries > 1 ? `（这是第 ${tk.tries} 次有人做它）` : ''}`);
+  log(S, backup ? 'warn' : 'info', backup ? L(`${tname(tk)} 还在运行，协调者启动一份备份交给 W${w.id+1}`, `${tname(tk)} is still running; the coordinator starts a backup copy on W${w.id+1}`) : L(`把 ${tname(tk)} 分配给 W${w.id+1}${tk.tries > 1 ? `（第 ${tk.tries} 次执行）` : ''}`, `${tname(tk)} assigned to W${w.id+1}${tk.tries > 1 ? ` (run #${tk.tries})` : ''}`), 'coord',
+    backup ? L(`${PT(tk)} 还没做完，老师请 ${PW(w.id)} 同时也做一份，谁先做完用谁的`, `${PT(tk)} isn't done yet; the teacher asks ${PW(w.id)} to do a copy too, and whoever finishes first wins`) : L(`老师把 ${PT(tk)} 交给 ${PW(w.id)}${tk.tries > 1 ? `（这是第 ${tk.tries} 次有人做它）` : ''}`, `The teacher gives ${PT(tk)} to ${PW(w.id)}${tk.tries > 1 ? ` (attempt #${tk.tries})` : ''}`));
   S.fx.push({type:'assign', task:tname(tk), w:w.id});
 }
 function verify(S){
@@ -499,7 +510,7 @@ function verify(S){
     let why = '';
     if (!ok){
       const seen = new Set(), dup = got.filter(l => { const k = l.split(' ')[0]; return seen.has(k) || !seen.add(k); }).length;
-      why = dup ? `${dup} 行重复` : got.length < exp.length ? `少了 ${exp.length - got.length} 行` : '内容与正确答案不同';
+      why = dup ? L(`${dup} 行重复`, `${dup} duplicate lines`) : got.length < exp.length ? L(`少了 ${exp.length - got.length} 行`, `${exp.length - got.length} lines missing`) : L('内容与正确答案不同', 'differs from the correct answer');
     }
     return {ok, why};
   });
@@ -520,8 +531,8 @@ function step(S, dt){
       }
       if (j.fetched.size < S.M) continue;
       j.fetching = false; j.lines = reduceLines(j.pairs);
-      if (!S.cfg.atomic){ const o = S.outs[j.id]; o.lines = []; o.state = 'writing'; o.rev++; log(S, 'warn', `W${w.id+1} 用 os.Create 打开 mr-out-${j.id}，原有内容被清空，开始直接写入`, 'worker', `${PW(w.id)} 不用草稿纸，先把 ${j.id} 号公告栏擦干净，再直接往上一行一行写`); }
-      else log(S, 'info', `W${w.id+1} 拿齐 R${j.id} 的 ${S.M} 个中间文件，开始写临时文件`, 'worker', `${PW(w.id)} 收齐了 ${S.M} 摞作文在 ${j.id} 号盒子里的统计，开始在草稿纸上汇总`);
+      if (!S.cfg.atomic){ const o = S.outs[j.id]; o.lines = []; o.state = 'writing'; o.rev++; log(S, 'warn', L(`W${w.id+1} 用 os.Create 打开 mr-out-${j.id}，原有内容被清空，开始直接写入`, `W${w.id+1} opens mr-out-${j.id} with os.Create, wiping what was there, and writes into it directly`), 'worker', L(`${PW(w.id)} 不用草稿纸，先把 ${j.id} 号公告栏擦干净，再直接往上一行一行写`, `${PW(w.id)} skips the scratch paper: wipes board ${j.id} clean, then writes on it line by line`)); }
+      else log(S, 'info', L(`W${w.id+1} 拿齐 R${j.id} 的 ${S.M} 个中间文件，开始写临时文件`, `W${w.id+1} has all ${S.M} intermediate files for R${j.id} and starts writing a temp file`), 'worker', L(`${PW(w.id)} 收齐了 ${S.M} 摞作文在 ${j.id} 号盒子里的统计，开始在草稿纸上汇总`, `${PW(w.id)} has box ${j.id}'s tallies from all ${S.M} stacks and starts totalling on scratch paper`));
     }
     j.progress = Math.min(1, j.progress + dt / ((j.kind === 'map' ? K.MAP_T : K.RED_T) * (w.slow ? K.SLOW : 1)));
     if (j.kind === 'reduce' && !S.cfg.atomic){ const o = S.outs[j.id], target = Math.floor(j.progress * j.lines.length); while (j.written < target){ o.lines.push(j.lines[j.written++]); o.rev++; } }
@@ -531,14 +542,14 @@ function step(S, dt){
   for (const tk of [...S.maps, ...S.reds])
     for (const r of [...tk.runs]) if (S.t - r.start > K.TIMEOUT){
       tk.runs.splice(tk.runs.indexOf(r), 1);
-      log(S, 'warn', `${tname(tk)} 在 W${r.w+1} 上超过 ${K.TIMEOUT} 秒没完成，协调者把它重新设为待分配`, 'coord', `${PT(tk)} 交给 ${PW(r.w)} 已经 ${K.TIMEOUT} 秒还没交回，老师不等了，把它重新放回待分配`);
+      log(S, 'warn', L(`${tname(tk)} 在 W${r.w+1} 上超过 ${K.TIMEOUT} 秒没完成，协调者把它重新设为待分配`, `${tname(tk)} on W${r.w+1} took over ${K.TIMEOUT} s; the coordinator marks it idle again`), 'coord', L(`${PT(tk)} 交给 ${PW(r.w)} 已经 ${K.TIMEOUT} 秒还没交回，老师不等了，把它重新放回待分配`, `${PT(tk)} has been with ${PW(r.w)} for ${K.TIMEOUT} s; the teacher stops waiting and puts it back in the to-do pile`));
       if (!tk.runs.length && tk.state !== 'done') tk.state = 'idle';
     }
   for (const w of S.workers) if (w.alive && !w.job && !w.exited) assign(S, w);
   if (S.reds.every(r => r.state === 'done')){
     S.done = true; S.doneAt = S.t; S.verdict = verify(S);
     for (const w of S.workers) if (w.alive && !w.job) w.exited = true;
-    log(S, 'ok', `作业完成，用时 ${S.t.toFixed(1)} 秒`, 'coord', `全部统计完成，用时 ${S.t.toFixed(1)} 秒`);
+    log(S, 'ok', L(`作业完成，用时 ${S.t.toFixed(1)} 秒`, `Job done in ${S.t.toFixed(1)} s`), 'coord', L(`全部统计完成，用时 ${S.t.toFixed(1)} 秒`, `All counting done in ${S.t.toFixed(1)} s`));
   }
 }
 function runHeadless(cfg){ const S = createSim(cfg); while (!S.done && S.t < 300) step(S, .05); return S; }
@@ -547,6 +558,16 @@ function runHeadless(cfg){ const S = createSim(cfg); while (!S.done && S.t < 300
 /* ---------------- UI ---------------- */
 const $ = s => document.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+/* ---------------- language ---------------- */
+document.title = L('MapReduce 实验台', 'MapReduce Lab');
+if (EN){
+  document.querySelectorAll('[data-en]').forEach(e => { e.innerHTML = e.dataset.en; });
+  document.querySelectorAll('[data-en-label]').forEach(e => e.setAttribute('aria-label', e.dataset.enLabel));
+  document.querySelectorAll('[data-en-title]').forEach(e => e.setAttribute('title', e.dataset.enTitle));
+}
+$('#langBtn').innerHTML = `<span class="${EN ? '' : 'on'}">中</span><span class="${EN ? 'on' : ''}">EN</span>`;
+$('#langBtn').title = EN ? '切换到中文' : 'Switch to English';
+$('#langBtn').addEventListener('click', () => { try { localStorage.setItem('course.lang', EN ? 'zh' : 'en'); } catch {} location.reload(); });
 const LINE = y => `var(--l${y % 4})`;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DEFAULT_TEXT = [
@@ -569,28 +590,28 @@ function writeSettings(){
   $('#splits').value = cfg.splits.join('\n'); $('#optR').value = cfg.R; $('#optW').value = cfg.W;
   fillSlow(); $('#optSlow').value = cfg.slow;
   $('#optAtomic').checked = cfg.atomic; $('#optBackup').checked = cfg.backup; $('#optComb').checked = cfg.combiner;
-  const sc = $('#script'); sc.textContent = cfg.note ? '本次实验脚本：' + cfg.note : ''; sc.classList.toggle('on', !!cfg.note);
+  const sc = $('#script'); sc.textContent = cfg.note ? L('本次实验脚本：', 'Scenario: ') + cfg.note : ''; sc.classList.toggle('on', !!cfg.note);
   hashCalc();
 }
-function fillSlow(){ const s = $('#optSlow'), W = +$('#optW').value, v = s.value; s.innerHTML = '<option value="-1">无</option>' + Array.from({length:W}, (_,i) => `<option value="${i}">W${i+1}</option>`).join(''); s.value = +v < W ? v : -1; }
+function fillSlow(){ const s = $('#optSlow'), W = +$('#optW').value, v = s.value; s.innerHTML = `<option value="-1">${L('无', 'none')}</option>` + Array.from({length:W}, (_,i) => `<option value="${i}">W${i+1}</option>`).join(''); s.value = +v < W ? v : -1; }
 function onSettingsChange(){ cfg = {...readSettings(), events:[], note:''}; writeSettings(); reset(); }
 
 function hashCalc(){
   const w = $('#hashw').value.trim() || 'the', R = +$('#optR').value, h = ihash(w), y = h % R;
-  $('#hashout').innerHTML = `ihash("${esc(w)}") = <b>${h}</b><br>${h} % ${R} = <b>${y}</b> → <span class="line" style="background:${LINE(y)}">${y}</span> 进入 ${y} 号盒子，最后出现在 ${y} 号公告栏（mr-out-${y}）。无论在哪摞作文里遇到它，都进这个盒子。`;
+  $('#hashout').innerHTML = `ihash("${esc(w)}") = <b>${h}</b><br>${h} % ${R} = <b>${y}</b> → <span class="line" style="background:${LINE(y)}">${y}</span> ` + L(`进入 ${y} 号盒子，最后出现在 ${y} 号公告栏（mr-out-${y}）。无论在哪摞作文里遇到它，都进这个盒子。`, `goes into box ${y} and ends up on board ${y} (mr-out-${y}). Whichever stack it turns up in, it goes into this box.`);
 }
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function build(){
   const tasks = $('#tasks'); tasks.innerHTML = ''; refs.chips = {};
-  const mk = t => { const c = el('div', 'chip'); c.innerHTML = `<b>${tname(t)}</b><i>待分配</i>`; tasks.append(c); refs.chips[tname(t)] = c; };
+  const mk = t => { const c = el('div', 'chip'); c.innerHTML = `<b>${tname(t)}</b><i>${L('待分配', 'idle')}</i>`; tasks.append(c); refs.chips[tname(t)] = c; };
   S.maps.forEach(mk); tasks.append(el('span', 'sep')); S.reds.forEach(mk);
   const cin = $('#colIn'); cin.innerHTML = ''; refs.splits = S.cfg.splits.map((s,i) => {
-    const d = el('div', 'split'); d.innerHTML = `<div class="fn"><span>pg-${i}.txt</span><span class="st">待处理</span></div><p>${esc(s)}</p>`; cin.append(d); return d; });
+    const d = el('div', 'split'); d.innerHTML = `<div class="fn"><span>pg-${i}.txt</span><span class="st">${L('待处理', 'waiting')}</span></div><p>${esc(s)}</p>`; cin.append(d); return d; });
   const cw = $('#colW'); cw.innerHTML = ''; refs.workers = S.workers.map((w,i) => {
     const d = el('div', 'worker');
-    d.innerHTML = `<div class="top"><span class="name">W${i+1}</span>${w.slow ? '<span class="tag">慢 ×4</span>' : ''}<button class="kill" type="button">让它宕机</button></div>
-      <div class="status">空闲</div><div class="bar2"><i></i></div><div class="tmp"></div><div class="disk"><span class="lbl">抽屉 · 本地磁盘</span></div>`;
+    d.innerHTML = `<div class="top"><span class="name">W${i+1}</span>${w.slow ? `<span class="tag">${L('慢 ×4', 'slow ×4')}</span>` : ''}<button class="kill" type="button">${L('让它宕机', 'Crash it')}</button></div>
+      <div class="status">${L('空闲', 'idle')}</div><div class="bar2"><i></i></div><div class="tmp"></div><div class="disk"><span class="lbl">${L('抽屉 · 本地磁盘', 'drawer · local disk')}</span></div>`;
     d.querySelector('.kill').addEventListener('click', () => { S.workers[i].alive ? crash(S, i) : revive(S, i); if (!playing) update(); });
     cw.append(d);
     return {root:d, status:d.querySelector('.status'), bar:d.querySelector('.bar2 i'), tmp:d.querySelector('.tmp'), disk:d.querySelector('.disk'), kill:d.querySelector('.kill'), sig:''}; });
@@ -599,67 +620,67 @@ function build(){
   for (let x = 0; x < S.M; x++){ const tr = el('tr'); tr.append(el('th', 'row', 'M' + x)); refs.cells[x] = [];
     for (let y = 0; y < S.R; y++){ const td = el('td'); td.innerHTML = '—'; tr.append(td); refs.cells[x][y] = td; } mtx.append(tr); }
   const co = $('#colOut'); co.innerHTML = ''; outRev = []; refs.outs = S.outs.map((o,y) => {
-    const d = el('div', 'out'); d.innerHTML = `<div class="oh"><span class="line" style="background:${LINE(y)}">${y}</span><b>mr-out-${y}</b><span class="ost">未生成</span></div><pre></pre>`;
+    const d = el('div', 'out'); d.innerHTML = `<div class="oh"><span class="line" style="background:${LINE(y)}">${y}</span><b>mr-out-${y}</b><span class="ost">${L('未生成', 'not yet')}</span></div><pre></pre>`;
     co.append(d); outRev[y] = -1; return {root:d, st:d.querySelector('.ost'), pre:d.querySelector('pre')}; });
   $('#log').innerHTML = ''; logIdx = 0;
-  $('#verdict').innerHTML = '<h3>结果校验</h3><p>统计结束后，这里会把公告栏上的结果，和一个人从头数一遍得到的正确答案逐行比对。</p>';
-  $('#ticker').textContent = cfg.note ? '场景已载入，按「播放」开始。' : '按「播放」开始。';
+  $('#verdict').innerHTML = L('<h3>结果校验</h3><p>统计结束后，这里会把公告栏上的结果，和一个人从头数一遍得到的正确答案逐行比对。</p>', '<h3>Checking the result</h3><p>When counting ends, the notice boards are compared line by line with the right answer from one person counting everything from scratch.</p>');
+  $('#ticker').textContent = cfg.note ? L('场景已载入，按「播放」开始。', 'Scenario loaded. Press Play to start.') : L('按「播放」开始。', 'Press Play to start.');
 }
 
 function update(){
-  $('#clock').innerHTML = `${S.t.toFixed(1)} <small>秒</small>`;
+  $('#clock').innerHTML = `${S.t.toFixed(1)} <small>${L('秒', 's')}</small>`;
   const mapsDone = S.maps.every(m => m.state === 'done'), ph = $('#phase');
   ph.className = 'phase ' + (S.done ? 'done' : S.t === 0 ? '' : mapsDone ? 'red' : 'map');
-  ph.textContent = S.done ? '完成' : S.t === 0 ? '准备' : mapsDone ? 'Reduce 阶段' : 'Map 阶段';
+  ph.textContent = S.done ? L('完成', 'Done') : S.t === 0 ? L('准备', 'Ready') : mapsDone ? L('Reduce 阶段', 'Reduce phase') : L('Map 阶段', 'Map phase');
   for (const t of [...S.maps, ...S.reds]){
     const c = refs.chips[tname(t)], cls = 'chip st-' + t.state;
     if (c.dataset.st === 'done' && t.state !== 'done'){ c.classList.remove('flash'); void c.offsetWidth; }
     c.className = cls + (c.dataset.st === 'done' && t.state !== 'done' ? ' flash' : (c.classList.contains('flash') ? ' flash' : ''));
     c.dataset.st = t.state;
-    const sub = t.state === 'done' ? (t.kind === 'map' ? `@W${t.loc+1}` : '完成') : t.runs.length ? t.runs.map(r => 'W' + (r.w+1)).join('+') : '待分配';
+    const sub = t.state === 'done' ? (t.kind === 'map' ? `@W${t.loc+1}` : L('完成', 'done')) : t.runs.length ? t.runs.map(r => 'W' + (r.w+1)).join('+') : L('待分配', 'idle');
     c.innerHTML = `<b>${tname(t)}</b><i>${sub}</i>${t.runs.length > 1 ? `<span class="dup">×${t.runs.length}</span>` : ''}`;
   }
   $('#stShuffle').textContent = S.shuffle;
   $('#stTries').textContent = [...S.maps, ...S.reds].reduce((a,t) => a + t.tries, 0);
-  $('#stDone').textContent = S.done ? S.doneAt.toFixed(1) + ' 秒' : '—';
-  S.maps.forEach((m,i) => { const d = refs.splits[i], st = m.state === 'done' ? '已完成' : m.state === 'prog' ? '处理中' : '待处理';
+  $('#stDone').textContent = S.done ? S.doneAt.toFixed(1) + L(' 秒', ' s') : '—';
+  S.maps.forEach((m,i) => { const d = refs.splits[i], st = m.state === 'done' ? L('已完成', 'done') : m.state === 'prog' ? L('处理中', 'in progress') : L('待处理', 'waiting');
     d.className = 'split ' + m.state; d.querySelector('.st').textContent = st; });
   S.workers.forEach((w,i) => {
     const r = refs.workers[i], j = w.job;
     r.root.classList.toggle('dead', !w.alive); r.root.classList.toggle('busy', !!j); r.root.classList.toggle('exited', w.exited && w.alive);
-    r.kill.textContent = w.alive ? '让它宕机' : '重启';
-    let st = '空闲', tmp = '', p = 0;
+    r.kill.textContent = w.alive ? L('让它宕机', 'Crash it') : L('重启', 'Restart');
+    let st = L('空闲', 'idle'), tmp = '', p = 0;
     const P = talk === 'plain';
-    if (!w.alive) st = P ? (w.declared ? '联系不上，老师已经知道了' : '联系不上，老师还不知道') : (w.declared ? '宕机，协调者已知道' : '宕机，协调者还不知道');
-    else if (w.exited) st = P ? '活都干完了，已下班' : '作业结束，已退出';
+    if (!w.alive) st = P ? (w.declared ? L('联系不上，老师已经知道了', 'unreachable; the teacher knows') : L('联系不上，老师还不知道', 'unreachable; the teacher doesn\'t know yet')) : (w.declared ? L('宕机，协调者已知道', 'crashed; the coordinator knows') : L('宕机，协调者还不知道', 'crashed; the coordinator doesn\'t know yet'));
+    else if (w.exited) st = P ? L('活都干完了，已下班', 'all done, gone home') : L('作业结束，已退出', 'job done, exited');
     else if (j){
       p = j.progress;
-      if (j.kind === 'map') st = P ? `在数 M${j.id} 这摞作文` : `运行 M${j.id}，读 pg-${j.id}.txt`;
-      else if (j.fetching){ st = P ? `收集 ${j.id} 号盒子的统计` : `R${j.id} 拉取中间文件`; tmp = P ? `已收到 ${j.fetched.size}/${S.M} 摞作文的结果` : `已拿到 ${j.fetched.size}/${S.M} 个 mr-*-${j.id}`; }
-      else { st = P ? `汇总 ${j.id} 号盒子` : `运行 R${j.id}`; const n = j.lines.length, k = Math.floor(p * n); tmp = S.cfg.atomic ? (P ? `在草稿纸上写，${k}/${n} 行` : `写临时文件 tmp-R${j.id}-W${i+1}，${k}/${n} 行`) : (P ? `直接写在 ${j.id} 号公告栏上，${k}/${n} 行` : `直接写 mr-out-${j.id}，${k}/${n} 行`); }
-    } else if (w.waiting) st = P ? '等老师派活' : '等待中';
+      if (j.kind === 'map') st = P ? L(`在数 M${j.id} 这摞作文`, `counting stack M${j.id}`) : L(`运行 M${j.id}，读 pg-${j.id}.txt`, `running M${j.id}, reading pg-${j.id}.txt`);
+      else if (j.fetching){ st = P ? L(`收集 ${j.id} 号盒子的统计`, `collecting box ${j.id}'s tallies`) : L(`R${j.id} 拉取中间文件`, `R${j.id} fetching intermediate files`); tmp = P ? L(`已收到 ${j.fetched.size}/${S.M} 摞作文的结果`, `got ${j.fetched.size}/${S.M} stacks' results`) : L(`已拿到 ${j.fetched.size}/${S.M} 个 mr-*-${j.id}`, `fetched ${j.fetched.size}/${S.M} mr-*-${j.id}`); }
+      else { st = P ? L(`汇总 ${j.id} 号盒子`, `totalling box ${j.id}`) : L(`运行 R${j.id}`, `running R${j.id}`); const n = j.lines.length, k = Math.floor(p * n); tmp = S.cfg.atomic ? (P ? L(`在草稿纸上写，${k}/${n} 行`, `writing on scratch paper, ${k}/${n} lines`) : L(`写临时文件 tmp-R${j.id}-W${i+1}，${k}/${n} 行`, `writing temp file tmp-R${j.id}-W${i+1}, ${k}/${n} lines`)) : (P ? L(`直接写在 ${j.id} 号公告栏上，${k}/${n} 行`, `writing straight onto board ${j.id}, ${k}/${n} lines`) : L(`直接写 mr-out-${j.id}，${k}/${n} 行`, `writing mr-out-${j.id} in place, ${k}/${n} lines`)); }
+    } else if (w.waiting) st = P ? L('等老师派活', 'waiting for the teacher') : L('等待中', 'waiting');
     r.status.textContent = st; r.tmp.textContent = tmp; r.bar.style.width = (p*100).toFixed(1) + '%';
     const keys = Object.keys(w.disk).filter(k => k.endsWith('-0')).map(k => +k.split('-')[0]).sort((a,b) => a-b), sig = keys.join(',');
     if (sig !== r.sig){ r.sig = sig;
-      r.disk.innerHTML = '<span class="lbl">抽屉 · 本地磁盘</span>' + (keys.length ? keys.map(x => `<span class="dfile">mr-${x}-*${Array.from({length:S.R}, (_,y) => `<s style="background:${LINE(y)}"></s>`).join('')}</span>`).join('') : '<span class="dfile" style="opacity:.6">空</span>'); }
+      r.disk.innerHTML = `<span class="lbl">${L('抽屉 · 本地磁盘', 'drawer · local disk')}</span>` + (keys.length ? keys.map(x => `<span class="dfile">mr-${x}-*${Array.from({length:S.R}, (_,y) => `<s style="background:${LINE(y)}"></s>`).join('')}</span>`).join('') : `<span class="dfile" style="opacity:.6">${L('空', 'empty')}</span>`); }
   });
   for (let x = 0; x < S.M; x++) for (let y = 0; y < S.R; y++){
     const td = refs.cells[x][y], m = S.maps[x];
     if (m.state === 'done' && m.loc >= 0){
       const src = S.workers[m.loc], n = S.mapOut[x][y].length;
-      if (src.alive){ td.className = 'has'; td.style.background = `color-mix(in srgb, ${LINE(y)} 16%, transparent)`; td.style.borderColor = LINE(y); td.innerHTML = `<b>${n} 对</b><small>@W${m.loc+1}</small>`; }
-      else { td.className = 'gone'; td.style.background = ''; td.style.borderColor = ''; td.innerHTML = `<b>${n} 对</b><small>W${m.loc+1} 宕机</small>`; }
+      if (src.alive){ td.className = 'has'; td.style.background = `color-mix(in srgb, ${LINE(y)} 16%, transparent)`; td.style.borderColor = LINE(y); td.innerHTML = `<b>${L(`${n} 对`, `${n} pairs`)}</b><small>@W${m.loc+1}</small>`; }
+      else { td.className = 'gone'; td.style.background = ''; td.style.borderColor = ''; td.innerHTML = `<b>${L(`${n} 对`, `${n} pairs`)}</b><small>W${m.loc+1} ${L('宕机', 'crashed')}</small>`; }
     } else { td.className = ''; td.style.background = ''; td.style.borderColor = ''; td.innerHTML = '—'; }
   }
   S.outs.forEach((o,y) => {
     const r = refs.outs[y], v = S.verdict && S.verdict[y];
     r.root.classList.toggle('writing', o.state === 'writing'); r.root.classList.toggle('ok', !!(v && v.ok)); r.root.classList.toggle('bad', !!(v && !v.ok));
-    r.st.textContent = v ? (v.ok ? '✓ 正确' : '✗ ' + v.why) : o.state === 'writing' ? '写入中' : o.state === 'done' ? '已生成' : '未生成';
+    r.st.textContent = v ? (v.ok ? L('✓ 正确', '✓ correct') : '✗ ' + v.why) : o.state === 'writing' ? L('写入中', 'writing') : o.state === 'done' ? L('已生成', 'written') : L('未生成', 'not yet');
     if (outRev[y] !== o.rev || (v && r.pre.dataset.v !== '1')){
       if (outRev[y] < o.rev && o.state === 'done' && S.cfg.atomic && !REDUCED){ r.root.classList.remove('pop'); void r.root.offsetWidth; r.root.classList.add('pop'); }
       outRev[y] = o.rev; r.pre.dataset.v = v ? '1' : '';
       const seen = new Set();
-      r.pre.innerHTML = o.lines ? o.lines.map(l => { const k = l.split(' ')[0], d = seen.has(k); seen.add(k); return d ? `<span class="dupl">${esc(l)}  ← 重复</span>` : esc(l); }).join('\n') : '';
+      r.pre.innerHTML = o.lines ? o.lines.map(l => { const k = l.split(' ')[0], d = seen.has(k); seen.add(k); return d ? `<span class="dupl">${esc(l)}  ← ${L('重复', 'duplicate')}</span>` : esc(l); }).join('\n') : '';
     }
   });
   const lg = $('#log');
@@ -674,7 +695,7 @@ function update(){
 const say = e => talk === 'plain' && e.plain ? e.plain : e.text;
 function logItem(e, fresh){
   const li = el('li', (fresh ? 'fresh ' : '') + 'k-' + e.kind);
-  const who = talk === 'plain' ? (e.who === 'coord' ? '老师' : '助教') : (e.who === 'coord' ? '协调者' : 'Worker');
+  const who = talk === 'plain' ? (e.who === 'coord' ? L('老师', 'teacher') : L('助教', 'helper')) : (e.who === 'coord' ? L('协调者', 'coordinator') : 'Worker');
   li.innerHTML = `<span class="lt">${e.t.toFixed(1)}s</span><span class="lw">${who}</span><span class="lx">${esc(say(e))}</span>`;
   return li;
 }
@@ -688,11 +709,11 @@ function setTalk(m){
   update();
 }
 function showVerdict(){
-  const ok = S.verdict.every(v => v.ok), bad = S.verdict.map((v,y) => v.ok ? null : `${y} 号公告栏（mr-out-${y}）：${v.why}`).filter(Boolean);
-  const reruns = [...S.maps, ...S.reds].filter(t => t.tries > 1).map(t => `${tname(t)} 被做了 ${t.tries} 次`);
-  $('#verdict').innerHTML = `<h3>结果校验</h3><p class="big ${ok ? 'ok' : 'bad'}">${ok ? '统计结果完全正确' : '统计结果有错'}</p>
+  const ok = S.verdict.every(v => v.ok), bad = S.verdict.map((v,y) => v.ok ? null : L(`${y} 号公告栏（mr-out-${y}）：${v.why}`, `Board ${y} (mr-out-${y}): ${v.why}`)).filter(Boolean);
+  const reruns = [...S.maps, ...S.reds].filter(t => t.tries > 1).map(t => L(`${tname(t)} 被做了 ${t.tries} 次`, `${tname(t)} ran ${t.tries} times`));
+  $('#verdict').innerHTML = `<h3>${L('结果校验', 'Checking the result')}</h3><p class="big ${ok ? 'ok' : 'bad'}">${ok ? L('统计结果完全正确', 'The count is exactly right') : L('统计结果有错', 'The count is wrong')}</p>
     ${bad.length ? `<ul>${bad.map(s => `<li>${s}</li>`).join('')}</ul>` : ''}
-    <p>用时 ${S.doneAt.toFixed(1)} 秒，各个盒子一共收集了 ${S.shuffle} 条统计（Shuffle）。${reruns.length ? '有活被做了不止一次：' + reruns.join('，') + '。' : '没有哪份活被重复做。'}</p>`;
+    <p>${L(`用时 ${S.doneAt.toFixed(1)} 秒，各个盒子一共收集了 ${S.shuffle} 条统计（Shuffle）。${reruns.length ? '有活被做了不止一次：' + reruns.join('，') + '。' : '没有哪份活被重复做。'}`, `Took ${S.doneAt.toFixed(1)} s; the boxes collected ${S.shuffle} tallies in all (the shuffle). ${reruns.length ? 'Some work ran more than once: ' + reruns.join(', ') + '.' : 'No work ran twice.'}`)}</p>`;
 }
 function drainFx(){
   const stage = $('#stage'), layer = $('#fx'), sr = stage.getBoundingClientRect();
@@ -714,7 +735,7 @@ function drainFx(){
 }
 
 function reset(){ S = createSim(cfg); refs = {}; build(); setPlaying(false); update(); }
-function setPlaying(p){ playing = p; $('#play').textContent = p ? '暂停' : (S && S.done ? '重新运行' : '播放'); }
+function setPlaying(p){ playing = p; $('#play').textContent = p ? L('暂停', 'Pause') : (S && S.done ? L('重新运行', 'Run again') : L('播放', 'Play')); }
 function frame(ts){
   const dt = Math.min(.1, (ts - (lastFrame || ts)) / 1000); lastFrame = ts;
   if (playing && !S.done){ let left = dt * speed; while (left > 1e-9){ const h = Math.min(.05, left); step(S, h); left -= h; } update(); if (S.done) setPlaying(false); }
@@ -762,12 +783,46 @@ const QS = [
    opts:['不变', '减少', '增加'], right:1,
    explain:() => { const a = runHeadless(mk({R:3})), b = runHeadless(mk(QS[5].preset)); return `用默认文本，不合计时一共要收集 ${a.shuffle} 条，合计后只要 ${b.shuffle} 条。一摞作文里重复的词越多，省得越多。词频统计能这样做，是因为加法先加哪部分结果都一样（满足交换律和结合律），助教先合计一部分不影响最后的总数。`; }},
 ];
+// English text for QS, by index; the scenarios themselves (presets) are shared.
+const QS_EN = [
+  {title:'A helper goes missing after counting', sub:'Crash after a Map finishes', note:'The helper with M1 goes missing 0.4 s after finishing',
+   setup:'3 helpers, 4 stacks of essays, 2 boxes. The helper counting stack M1 has just finished and put the result in their drawer, and 0.4 s later can no longer be reached.',
+   ask:'What does the teacher do about M1 now?',
+   opts:['Nothing; M1 is already counted', 'Have someone count M1 again, because the result is locked in the missing helper’s drawer', 'Recount every stack', 'Throw the whole count away and start over'],
+   explain:() => { const a = runHeadless(mk(QS[0].preset)), b = runHeadless(mk({R:2})); return `M1’s tally (intermediate files mr-1-*) sits in that helper’s own drawer (local disk), and with the helper gone nobody can get it. After ${K.DETECT} s of silence the teacher puts M1 back in the to-do pile and has another helper recount it. A helper already totalling a box gets stuck “waiting for M1’s result” and has to put the work down for now. This run took ${a.doneAt.toFixed(1)} s, versus ${b.doneAt.toFixed(1)} s with nobody missing.`; }},
+  {title:'A helper goes missing after totalling', sub:'Crash after a Reduce finishes', note:'The helper who posted board 0 goes missing 0.2 s later',
+   setup:'3 helpers, 4 boxes. The helper who pinned box 0’s total to the notice board (mr-out-0) can’t be reached 0.2 s later.',
+   ask:'Does board 0 need to be totalled again?',
+   opts:['Yes, everything that helper did is gone', 'No, the result is already on the notice board (GFS)', 'Yes, because the total is also in their drawer'],
+   explain:() => { const a = runHeadless(mk(QS[1].preset)), rr = a.maps.filter(m => m.tries > 1).map(m => 'M' + m.id), r0 = a.reds[0].tries; return `The notice board (GFS) is visible to everyone and kept in several copies, so a helper leaving doesn’t matter: R0 ran only ${r0} time(s). The stack tallies in their drawer${rr.length ? ` (${rr.join(', ')})` : ''} do have to be recounted, though, because some boxes aren’t totalled yet and still need them.`; }},
+  {title:'A slow helper, no scratch paper', sub:'Slow machine · atomic rename off', note:'W3 is a slow helper; no scratch paper',
+   setup:'W3 is a slow helper, a quarter of the normal speed: totalling one box takes 12 s, longer than the 10 s the teacher is willing to wait. This time there is no scratch paper; everyone erases and writes straight onto the notice board.',
+   ask:'When counting ends, are the results on the notice board right?',
+   opts:['Exactly right', 'One board is garbled, with lines missing or duplicated', 'The count gets stuck and never finishes'],
+   explain:() => { const a = runHeadless(mk(QS[2].preset)), bad = a.verdict.map((v,y) => v.ok ? null : `board ${y}: ${v.why}`).filter(Boolean); return `After 10 s the teacher assumes W3 isn’t coming back and gives the same box to another helper. The new helper wipes the board clean before writing (os.Create empties the file), but W3 hasn’t left and is still writing on the same board, so their writing gets mixed together. Result: ${bad.length ? bad.join('; ') : 'by luck, nothing went wrong this time'}.`; }},
+  {title:'Same slow helper, with scratch paper', sub:'Slow machine · atomic rename on', note:'W3 is a slow helper; with scratch paper',
+   setup:'Exactly like the last question, except everyone writes on scratch paper first and pins it to the notice board in one go.',
+   ask:'Are the results on the board right this time?',
+   opts:['Right', 'There are still duplicate lines', 'Some lines go missing'], 
+   explain:() => { const a = runHeadless(mk(QS[3].preset)); return `Each helper writes on their own scratch paper (a temp file) and only pins it up when done (os.Rename). Pinning happens in an instant (it is atomic), so readers only ever see one complete sheet. The two sheets are identical, so it doesn’t matter who pins last. This run was ${a.verdict.every(v => v.ok) ? 'exactly right' : 'wrong'}, in ${a.doneAt.toFixed(1)} s.`; }},
+  {title:'Call in a backup for the slow helper', sub:'Backup tasks', note:'W3 is a slow helper; backups on',
+   setup:'The same slow helper W3. This time “call in backups” is on: near the end, idle helpers redo unfinished work, and whoever finishes first wins.',
+   ask:'What happens to the total time?',
+   opts:['About the same', 'Clearly shorter', 'Longer, because some work is done twice'],
+   explain:() => { const a = runHeadless(mk({R:2, slow:2})), b = runHeadless(mk(QS[4].preset)), ta = [...a.maps, ...a.reds].reduce((s,t) => s + t.tries, 0), tb = [...b.maps, ...b.reds].reduce((s,t) => s + t.tries, 0); return `Without backups it took ${a.doneAt.toFixed(1)} s; with backups, ${b.doneAt.toFixed(1)} s. A backup finishes the slow helper’s work first, so nobody sits waiting for them. The price: work ran ${tb} times in all instead of ${ta}. In the paper’s sort experiment, turning off backup tasks made the job take 44% longer.`; }},
+  {title:'Tally up before handing in', sub:'Combiner', note:'“Tally first” on',
+   setup:'With the combiner on, a helper who finishes a stack first adds up each word before putting it in the boxes. If “the” appears twice in the stack, instead of two slips saying “the 1” there is now one saying “the 2”.',
+   ask:'What happens to the number of tallies the boxes collect (the shuffle)?',
+   opts:['No change', 'Fewer', 'More'],
+   explain:() => { const a = runHeadless(mk({R:3})), b = runHeadless(mk(QS[5].preset)); return `With the default text, ${a.shuffle} tallies are collected without combining and only ${b.shuffle} with it. The more a word repeats within a stack, the more you save. Word count can do this because addition gives the same total whatever you add first (it is commutative and associative), so a helper adding up part of it early doesn’t change the final count.`; }},
+];
+if (EN) QS.forEach((q, i) => { const e = QS_EN[i]; Object.assign(q, e, {preset: {...q.preset, note: e.note}}); });
 function mk(p){ return {...BASE, splits:DEFAULT_TEXT.split('\n'), ...p}; }
 function buildQs(){
   const box = $('#qs');
   QS.forEach((q, qi) => {
     const a = el('article', 'q');
-    a.innerHTML = `<div class="qn"><span>题 ${qi+1}</span></div><h3>${q.title}</h3>${q.sub ? `<p class="qsub">${q.sub}</p>` : ''}<p class="setup">${q.setup}</p><p class="ask">${q.ask}</p><div class="opts"></div><div class="ans" hidden></div>`;
+    a.innerHTML = `<div class="qn"><span>${L('题', 'Q')} ${qi+1}</span></div><h3>${q.title}</h3>${q.sub ? `<p class="qsub">${q.sub}</p>` : ''}<p class="setup">${q.setup}</p><p class="ask">${q.ask}</p><div class="opts"></div><div class="ans" hidden></div>`;
     const opts = a.querySelector('.opts'), ans = a.querySelector('.ans');
     q.opts.forEach((o, oi) => { const b = el('button', 'opt', o); b.type = 'button';
       b.addEventListener('click', () => {
@@ -775,8 +830,8 @@ function buildQs(){
         if (oi !== q.right) b.classList.add('wrong');
         try { const k = 'course.ep01.lab.answered', got = new Set(JSON.parse(localStorage.getItem(k) || '[]')); got.add(qi); localStorage.setItem(k, JSON.stringify([...got])); } catch {}
         ans.hidden = false;
-        ans.innerHTML = `<p class="res ${oi === q.right ? 'ok' : 'bad'}">${oi === q.right ? '答对了。' : '不对，正确答案已标出。'}</p><p>${q.explain()}</p>`;
-        const run = el('button', 'btn primary', '在模拟器里运行这个场景'); run.type = 'button';
+        ans.innerHTML = `<p class="res ${oi === q.right ? 'ok' : 'bad'}">${oi === q.right ? L('答对了。', 'Correct.') : L('不对，正确答案已标出。', 'Not quite; the right answer is marked.')}</p><p>${q.explain()}</p>`;
+        const run = el('button', 'btn primary', L('在模拟器里运行这个场景', 'Run this scenario in the simulator')); run.type = 'button';
         run.addEventListener('click', () => { cfg = mk(q.preset); writeSettings(); reset(); $('#lab').scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth'}); setTimeout(() => setPlaying(true), REDUCED ? 0 : 500); if (speed < 2){ speed = 2; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x.dataset.s === '2')); } });
         ans.append(run);
       });

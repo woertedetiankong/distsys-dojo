@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+/* 中文 / English. The choice is shared with the course site (localStorage 'course.lang'); the default follows the browser. */
+const EN = (() => { let l = null; try { l = localStorage.getItem('course.lang'); } catch {} if (l !== 'zh' && l !== 'en') l = /^zh\b/i.test(navigator.language || '') ? 'zh' : 'en'; return l === 'en'; })();
+const L = (zh, en) => EN ? en : zh;
+document.documentElement.lang = EN ? 'en' : 'zh-CN';
+</script>
 <title>RPC 实验台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,8 +55,13 @@ code{font:12.5px var(--f-mono); background:var(--soft); border-radius:6px; paddi
 .hero{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:16px; align-items:stretch}
 .hero > div:first-child{background:var(--tile); border:1px solid var(--edge); border-radius:22px; padding:28px 30px; display:flex; flex-direction:column; justify-content:flex-end}
 .eyebrow{font:500 13px var(--f-mono); color:var(--acc)}
-.home{align-self:flex-start; margin-bottom:14px; font:500 13px var(--f-sans); color:var(--mute); text-decoration:none; padding:6px 12px; border-radius:10px; background:var(--soft)}
+.home{ font:500 13px var(--f-sans); color:var(--mute); text-decoration:none; padding:6px 12px; border-radius:10px; background:var(--soft)}
 .home:hover{color:var(--ink)}
+.hero-top{display:flex; align-items:center; gap:10px; margin-bottom:14px}
+.lang{margin-left:auto; display:inline-flex; padding:3px; gap:2px; border-radius:999px; background:var(--soft); border:0; cursor:pointer; font:600 12px/1 var(--f-mono); color:var(--mute)}
+.lang span{padding:5px 9px; border-radius:999px}
+.lang span.on{background:var(--ink); color:var(--bg)}
+.lang:hover span:not(.on){color:var(--ink)}
 .hero h1{font:600 clamp(36px,5vw,56px)/1.05 var(--f-sans); letter-spacing:-.03em; margin-top:10px}
 .lead{margin-top:14px; max-width:36em; color:var(--mute); font-size:15.5px; text-wrap:pretty}
 .path{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
@@ -197,111 +208,121 @@ footer{font-size:13px; color:var(--faint); border-top:1px solid var(--edge); pad
 <div class="wrap">
   <header class="hero">
     <div>
-      <a class="home" id="homeLink" href="/" hidden>← 课程首页</a>
-      <p class="eyebrow">MIT 6.5840 分布式系统 · 第 2 集 · 交互实验</p>
-      <h1>RPC 实验台</h1>
-      <p class="lead">视频讲了消息丢失时会发生什么，这一页让你亲手制造丢失：弄丢一封信、一封回信，或者关掉重试，看看档案室里的记录会不会多写一遍，客户端拿到的答复是不是实话。</p>
+      <div class="hero-top"><a class="home" id="homeLink" href="/" hidden data-en="← Course home">← 课程首页</a><button class="lang" id="langBtn" type="button"></button></div>
+      <p class="eyebrow" data-en="MIT 6.5840 Distributed Systems · Episode 2 · Interactive lab">MIT 6.5840 分布式系统 · 第 2 集 · 交互实验</p>
+      <h1 data-en="RPC lab">RPC 实验台</h1>
+      <p class="lead" data-en="The video showed what happens when messages get lost; this page lets you lose them yourself: lose a letter, lose a reply, or turn off resending, and see whether the records office writes something twice and whether the answer a client gets is the truth.">视频讲了消息丢失时会发生什么，这一页让你亲手制造丢失：弄丢一封信、一封回信，或者关掉重试，看看档案室里的记录会不会多写一遍，客户端拿到的答复是不是实话。</p>
     </div>
-    <ol class="path" aria-label="学习顺序">
-      <li data-n="01"><b>看视频</b>建立直觉</li>
-      <li data-n="02"><b>读讲义</b>l-rpc.txt 与 kv.go</li>
-      <li data-n="03" class="here"><b>做实验</b>就是这一页</li>
-      <li data-n="04"><b>写 Lab 2</b>server.go、client.go 与锁</li>
+    <ol class="path" aria-label="学习顺序" data-en-label="Learning path">
+      <li data-n="01" data-en="<b>Watch</b>build intuition"><b>看视频</b>建立直觉</li>
+      <li data-n="02" data-en="<b>Read the notes</b>l-rpc.txt and kv.go"><b>读讲义</b>l-rpc.txt 与 kv.go</li>
+      <li data-n="03" class="here" data-en="<b>Experiment</b>this page"><b>做实验</b>就是这一页</li>
+      <li data-n="04" data-en="<b>Write Lab 2</b>server.go, client.go and the lock"><b>写 Lab 2</b>server.go、client.go 与锁</li>
     </ol>
   </header>
 
   <section aria-labelledby="ana-h">
-    <div class="sec-head"><h2 id="ana-h">先看懂这个比喻</h2><p>几个人靠写信请档案室办事，邮局偶尔会把信弄丢。页面上的每个术语，都对应这个场景里的一样东西。</p></div>
+    <div class="sec-head"><h2 id="ana-h" data-en="First, the analogy">先看懂这个比喻</h2><p data-en="A few people get things done at a records office by writing letters, and the post office loses a letter now and then. Every term on this page maps to one thing in that scene.">几个人靠写信请档案室办事，邮局偶尔会把信弄丢。页面上的每个术语，都对应这个场景里的一样东西。</p></div>
     <div class="ana-grid">
-      <div class="ana"><b>寄信人</b><span>Client · Clerk</span><p>写信请档案室办事，然后等回信。等太久就再寄一封一模一样的。</p></div>
-      <div class="ana"><b>档案室</b><span>KV Server</span><p>按信办事，每份档案都有一个修订号。同一时间可能收到好几封信，要一封一封地办（加锁）。</p></div>
-      <div class="ana"><b>信和回信</b><span>Request · Reply</span><p>都可能在路上丢掉。寄信人只知道「没等到回信」，不知道丢的是哪一封。</p></div>
-      <div class="ana"><b>修订号</b><span>Version</span><p>改档案时要写明「我看到的是第几版」。版本对不上，档案室就拒绝修改（ErrVersion）。</p></div>
-      <div class="ana"><b>「可能办成了」</b><span>ErrMaybe</span><p>重寄的信被拒绝时，寄信人说不清第一封有没有办成，只能如实这样回答。</p></div>
+      <div class="ana" data-en="<b>Letter writer</b><span>Client · Clerk</span><p>Writes to the records office asking for something, then waits for a reply. After waiting too long, sends an identical letter again.</p>"><b>寄信人</b><span>Client · Clerk</span><p>写信请档案室办事，然后等回信。等太久就再寄一封一模一样的。</p></div>
+      <div class="ana" data-en="<b>Records office</b><span>KV Server</span><p>Acts on letters; every record has a revision number. Several letters can arrive at once and must be handled one at a time (a lock).</p>"><b>档案室</b><span>KV Server</span><p>按信办事，每份档案都有一个修订号。同一时间可能收到好几封信，要一封一封地办（加锁）。</p></div>
+      <div class="ana" data-en="<b>Letters and replies</b><span>Request · Reply</span><p>Either can be lost on the way. The writer only knows “no reply came”, not which one was lost.</p>"><b>信和回信</b><span>Request · Reply</span><p>都可能在路上丢掉。寄信人只知道「没等到回信」，不知道丢的是哪一封。</p></div>
+      <div class="ana" data-en="<b>Revision number</b><span>Version</span><p>A change must say “this is the revision I saw”. If it doesn’t match, the office refuses the change (ErrVersion).</p>"><b>修订号</b><span>Version</span><p>改档案时要写明「我看到的是第几版」。版本对不上，档案室就拒绝修改（ErrVersion）。</p></div>
+      <div class="ana" data-en="<b>“Maybe it went through”</b><span>ErrMaybe</span><p>When a resent letter is refused, the writer can’t tell whether the first one went through, so this is the honest answer.</p>"><b>「可能办成了」</b><span>ErrMaybe</span><p>重寄的信被拒绝时，寄信人说不清第一封有没有办成，只能如实这样回答。</p></div>
     </div>
   </section>
 
   <section class="lab" id="lab" aria-labelledby="lab-h">
-    <div class="sec-head"><h2 id="lab-h">模拟器</h2><p>选好模式和要丢的消息，按「播放」。丢失的信会在路上变成红色的 ✕。改动参数后会自动重新开始。</p></div>
+    <div class="sec-head"><h2 id="lab-h" data-en="Simulator">模拟器</h2><p data-en="Pick a mode and the message to lose, then press Play. A lost letter turns into a red ✕ on the way. Changing a setting restarts the run.">选好模式和要丢的消息，按「播放」。丢失的信会在路上变成红色的 ✕。改动参数后会自动重新开始。</p></div>
 
-    <div class="bar" role="toolbar" aria-label="播放控制">
+    <div class="bar" role="toolbar" aria-label="播放控制" data-en-label="Playback">
       <button class="btn primary" id="play" type="button">播放</button>
-      <button class="btn" id="step" type="button">单步 +0.5 秒</button>
-      <button class="btn" id="reset" type="button">重置</button>
-      <div class="seg" id="speed" role="group" aria-label="速度"><button type="button" data-s="0.5">0.5×</button><button type="button" data-s="1" class="on">1×</button><button type="button" data-s="2">2×</button><button type="button" data-s="4">4×</button></div>
+      <button class="btn" id="step" type="button" data-en="Step +0.5 s">单步 +0.5 秒</button>
+      <button class="btn" id="reset" type="button" data-en="Reset">重置</button>
+      <div class="seg" id="speed" role="group" aria-label="速度" data-en-label="Speed"><button type="button" data-s="0.5">0.5×</button><button type="button" data-s="1" class="on">1×</button><button type="button" data-s="2">2×</button><button type="button" data-s="4">4×</button></div>
       <div class="clock"><span class="phase" id="phase">准备</span><span class="t" id="clock">0.0 <small>秒</small></span></div>
     </div>
 
     <div class="settings">
       <div>
-        <label class="lbl" for="optMode">客户端要做的事</label>
+        <label class="lbl" for="optMode" data-en="What the clients do">客户端要做的事</label>
         <select id="optMode">
-          <option value="append">追加：Append(k, 自己的字母)，不带版本号</option>
-          <option value="version" selected>带版本号的 Put：先 Get，再 Put(k, 自己的名字, 看到的版本)</option>
-          <option value="lock">锁：用带版本号的 Put 加锁，拿到后持有 2 秒再解锁</option>
+          <option value="append" data-en="Append: Append(k, own letter), no version">追加：Append(k, 自己的字母)，不带版本号</option>
+          <option value="version" selected data-en="Versioned Put: Get first, then Put(k, own name, version seen)">带版本号的 Put：先 Get，再 Put(k, 自己的名字, 看到的版本)</option>
+          <option value="lock" data-en="Lock: acquire with a versioned Put, hold it 2 s, then release">锁：用带版本号的 Put 加锁，拿到后持有 2 秒再解锁</option>
         </select>
         <div class="row2" style="margin-top:10px">
-          <div><label class="lbl" for="optN">客户端数</label><select id="optN"><option>1</option><option selected>2</option><option>3</option></select></div>
-          <div><label class="lbl" for="optLoss">随机丢失率</label><select id="optLoss"><option value="0" selected>0%</option><option value="0.2">20%</option><option value="0.4">40%</option></select></div>
+          <div><label class="lbl" for="optN" data-en="Clients">客户端数</label><select id="optN"><option>1</option><option selected>2</option><option>3</option></select></div>
+          <div><label class="lbl" for="optLoss" data-en="Random loss rate">随机丢失率</label><select id="optLoss"><option value="0" selected>0%</option><option value="0.2">20%</option><option value="0.4">40%</option></select></div>
         </div>
       </div>
       <div>
-        <label class="lbl" for="optDrop">指定丢掉一条消息</label>
+        <label class="lbl" for="optDrop" data-en="Lose one specific message">指定丢掉一条消息</label>
         <select id="optDrop">
-          <option value="">不指定</option>
-          <option value="req:1">C1 的第 1 封信（请求）</option>
-          <option value="rep:1">C1 收到的第 1 封回信</option>
-          <option value="req:2">C1 的第 2 封信（请求）</option>
-          <option value="rep:2" selected>C1 收到的第 2 封回信</option>
+          <option value="" data-en="None">不指定</option>
+          <option value="req:1" data-en="C1’s 1st letter (request)">C1 的第 1 封信（请求）</option>
+          <option value="rep:1" data-en="The 1st reply to C1">C1 收到的第 1 封回信</option>
+          <option value="req:2" data-en="C1’s 2nd letter (request)">C1 的第 2 封信（请求）</option>
+          <option value="rep:2" selected data-en="The 2nd reply to C1">C1 收到的第 2 封回信</option>
         </select>
-        <p class="consts" style="font-size:12.5px;color:var(--mute);margin-top:10px">信在路上走 0.8 秒。寄出 2 秒还没收到回信，就重寄一封（Lab 2 里是 RPC 调用失败后等 100 毫秒再重发）。</p>
+        <p class="consts" style="font-size:12.5px;color:var(--mute);margin-top:10px" data-en="A letter takes 0.8 s on the way. With no reply 2 s after sending, the writer sends another (in Lab 2, after a failed RPC call you wait 100 ms and resend).">信在路上走 0.8 秒。寄出 2 秒还没收到回信，就重寄一封（Lab 2 里是 RPC 调用失败后等 100 毫秒再重发）。</p>
         <p class="script" id="script" hidden></p>
       </div>
       <div>
-        <label class="switch" for="optRetry"><span>重试<small>等不到回信就重寄</small></span><input type="checkbox" id="optRetry" checked></label>
-        <label class="switch" for="optMaybe"><span>ErrMaybe 规则<small>重寄过的 Put 被拒绝时，回答「可能办成了」</small></span><input type="checkbox" id="optMaybe" checked></label>
+        <label class="switch" for="optRetry"><span data-en="Retry<small>resend when no reply comes</small>">重试<small>等不到回信就重寄</small></span><input type="checkbox" id="optRetry" checked></label>
+        <label class="switch" for="optMaybe"><span data-en="ErrMaybe rule<small>a resent Put that is refused answers “maybe it went through”</small>">ErrMaybe 规则<small>重寄过的 Put 被拒绝时，回答「可能办成了」</small></span><input type="checkbox" id="optMaybe" checked></label>
       </div>
     </div>
 
     <div class="stage">
-      <div class="col"><h3>客户端 <em>寄信人</em></h3><div class="lanes" id="clients"></div></div>
-      <div class="col"><h3>网络 <em>上面是信，下面是回信</em></h3><div class="lanes" id="lanes"></div></div>
-      <div class="col srvcol"><h3>服务器 <em>档案室</em></h3><div class="srv" id="srv"></div></div>
+      <div class="col"><h3 data-en="Clients <em>letter writers</em>">客户端 <em>寄信人</em></h3><div class="lanes" id="clients"></div></div>
+      <div class="col"><h3 data-en="Network <em>letters above, replies below</em>">网络 <em>上面是信，下面是回信</em></h3><div class="lanes" id="lanes"></div></div>
+      <div class="col srvcol"><h3 data-en="Server <em>records office</em>">服务器 <em>档案室</em></h3><div class="srv" id="srv"></div></div>
     </div>
 
     <div class="below">
-      <div class="panel"><div class="panel-h"><h3>事件日志</h3><div class="seg" id="talk" role="group" aria-label="说法"><button type="button" data-m="plain">大白话</button><button type="button" data-m="term">术语</button></div></div><ol class="log" id="log"></ol></div>
-      <div class="panel verdict" id="verdict"><h3>结果校验</h3><p>所有客户端结束后，这里会核对两件事：每个操作实际执行了几次，以及每个客户端拿到的答复是不是实话。</p></div>
+      <div class="panel"><div class="panel-h"><h3 data-en="Event log">事件日志</h3><div class="seg" id="talk" role="group" aria-label="说法" data-en-label="Wording"><button type="button" data-m="plain" data-en="Plain words">大白话</button><button type="button" data-m="term" data-en="Terms">术语</button></div></div><ol class="log" id="log"></ol></div>
+      <div class="panel verdict" id="verdict"></div>
     </div>
   </section>
 
   <section aria-labelledby="qs-h">
-    <div class="sec-head"><h2 id="qs-h">先预测，再验证</h2><p>每道题先凭直觉选一个答案，再在模拟器里运行同样的场景，看看你猜得对不对。猜错的题最有收获。</p></div>
+    <div class="sec-head"><h2 id="qs-h" data-en="Predict, then check">先预测，再验证</h2><p data-en="For each question, pick an answer on instinct first, then run the same scenario in the simulator and see whether you were right. The ones you get wrong teach the most.">每道题先凭直觉选一个答案，再在模拟器里运行同样的场景，看看你猜得对不对。猜错的题最有收获。</p></div>
     <div class="qs" id="qs"></div>
   </section>
 
   <section aria-labelledby="map-h">
-    <div class="sec-head"><h2 id="map-h">对照 Lab 2</h2><p>模拟器里看到的每个机制，在 Lab 2 里都要你自己写出来。</p></div>
+    <div class="sec-head"><h2 id="map-h" data-en="Mapping to Lab 2">对照 Lab 2</h2><p data-en="Every mechanism you see in the simulator is something you write yourself in Lab 2.">模拟器里看到的每个机制，在 Lab 2 里都要你自己写出来。</p></div>
     <div class="tbl-wrap"><table class="map">
-      <thead><tr><th>模拟器里的现象</th><th>Lab 2 里你要写的</th><th>常见的坑</th></tr></thead>
+      <thead><tr><th data-en="In the simulator">模拟器里的现象</th><th data-en="What you write in Lab 2">Lab 2 里你要写的</th><th data-en="Common traps">常见的坑</th></tr></thead>
       <tbody>
-        <tr><td>版本号对上才修改</td><td><code>server.go</code>：每个键存 value 和 version；Put 的版本号相等才写入并加一，否则返回 <code>ErrVersion</code>；版本号大于 0 而键不存在时返回 <code>ErrNoKey</code>。</td><td class="trap">版本号对不上也照写，或者忘了加一</td></tr>
-        <tr><td>多封信同时到达</td><td>Get 和 Put 的处理函数用同一把 <code>sync.Mutex</code> 保护整个 map。</td><td class="trap">只给 Put 加锁，Get 读到写了一半的状态，<code>-race</code> 报错</td></tr>
-        <tr><td>等不到回信就重寄</td><td><code>client.go</code>：<code>ck.clnt.Call</code> 返回 false 就 <code>time.Sleep(100 * time.Millisecond)</code> 再发，直到收到回复。</td><td class="trap">只发一次；或者不 sleep，疯狂重发</td></tr>
-        <tr><td>「可能办成了」</td><td>记住这个 Put 是否重发过：重发过又收到 <code>ErrVersion</code> 就返回 <code>ErrMaybe</code>；第一次就收到 <code>ErrVersion</code> 则如实返回 <code>ErrVersion</code>。</td><td class="trap">总是返回 ErrVersion，或者总是返回 ErrMaybe</td></tr>
-        <tr><td>锁</td><td><code>lock/lock.go</code>：Acquire 循环读锁的键，空着就带版本号写入自己的 id；收到 <code>ErrMaybe</code> 就再读一次看是不是自己的 id。Release 写回空值。</td><td class="trap">收到 ErrMaybe 就当作没拿到，结果自己把自己锁在门外</td></tr>
+        <tr><td data-en="Change only when the version matches">版本号对上才修改</td><td data-en="<code>server.go</code>: each key stores a value and a version; a Put writes and adds one only when the versions are equal, otherwise returns <code>ErrVersion</code>; with a version above 0 on a missing key it returns <code>ErrNoKey</code>."><code>server.go</code>：每个键存 value 和 version；Put 的版本号相等才写入并加一，否则返回 <code>ErrVersion</code>；版本号大于 0 而键不存在时返回 <code>ErrNoKey</code>。</td><td class="trap" data-en="Writing even when the version doesn’t match, or forgetting to add one">版本号对不上也照写，或者忘了加一</td></tr>
+        <tr><td data-en="Several letters arrive at once">多封信同时到达</td><td data-en="Guard the whole map with one <code>sync.Mutex</code> in both the Get and Put handlers.">Get 和 Put 的处理函数用同一把 <code>sync.Mutex</code> 保护整个 map。</td><td class="trap" data-en="Locking only Put, so Get reads a half-written state and <code>-race</code> complains">只给 Put 加锁，Get 读到写了一半的状态，<code>-race</code> 报错</td></tr>
+        <tr><td data-en="Resend when no reply comes">等不到回信就重寄</td><td data-en="<code>client.go</code>: when <code>ck.clnt.Call</code> returns false, <code>time.Sleep(100 * time.Millisecond)</code> and send again, until a reply arrives."><code>client.go</code>：<code>ck.clnt.Call</code> 返回 false 就 <code>time.Sleep(100 * time.Millisecond)</code> 再发，直到收到回复。</td><td class="trap" data-en="Sending only once; or resending like mad without sleeping">只发一次；或者不 sleep，疯狂重发</td></tr>
+        <tr><td data-en="“Maybe it went through”">「可能办成了」</td><td data-en="Remember whether this Put was resent: resent and then <code>ErrVersion</code> means return <code>ErrMaybe</code>; <code>ErrVersion</code> on the first try is honestly <code>ErrVersion</code>.">记住这个 Put 是否重发过：重发过又收到 <code>ErrVersion</code> 就返回 <code>ErrMaybe</code>；第一次就收到 <code>ErrVersion</code> 则如实返回 <code>ErrVersion</code>。</td><td class="trap" data-en="Always returning ErrVersion, or always returning ErrMaybe">总是返回 ErrVersion，或者总是返回 ErrMaybe</td></tr>
+        <tr><td data-en="The lock">锁</td><td data-en="<code>lock/lock.go</code>: Acquire loops reading the lock’s key and, when it is free, writes its own id with the version; on <code>ErrMaybe</code> it reads again to see whether the id is its own. Release writes the empty value back."><code>lock/lock.go</code>：Acquire 循环读锁的键，空着就带版本号写入自己的 id；收到 <code>ErrMaybe</code> 就再读一次看是不是自己的 id。Release 写回空值。</td><td class="trap" data-en="Treating ErrMaybe as not acquired, and locking yourself out">收到 ErrMaybe 就当作没拿到，结果自己把自己锁在门外</td></tr>
       </tbody>
     </table></div>
-    <p class="note" style="margin-top:12px;font-size:13.5px;color:var(--mute);max-width:62em">模拟器把时间放慢了：信走 0.8 秒、等 2 秒重寄，方便看清楚。Lab 2 的服务器不记录任何客户端的信息，版本号就是它防止重复执行的全部手段，这里也一样。</p>
+    <p class="note" style="margin-top:12px;font-size:13.5px;color:var(--mute);max-width:62em" data-en="The simulator slows time down: letters take 0.8 s and resends happen after 2 s, so you can see what is going on. The Lab 2 server keeps no information about clients; the version is its only defense against running something twice, and the same holds here.">模拟器把时间放慢了：信走 0.8 秒、等 2 秒重寄，方便看清楚。Lab 2 的服务器不记录任何客户端的信息，版本号就是它防止重复执行的全部手段，这里也一样。</p>
   </section>
 
-  <footer>参考：MIT 6.5840 第 2 讲 RPC and Threads（l-rpc.txt、kv.go、crawler.go）· Lab 2 Key/Value Server。模拟器、比喻和题目均为原创。</footer>
+  <footer data-en="References: MIT 6.5840 Lecture 2, RPC and Threads (l-rpc.txt, kv.go, crawler.go) · Lab 2 Key/Value Server. The simulator, analogy and questions are original.">参考：MIT 6.5840 第 2 讲 RPC and Threads（l-rpc.txt、kv.go、crawler.go）· Lab 2 Key/Value Server。模拟器、比喻和题目均为原创。</footer>
 </div>
 
 <script>
 const $ = s => document.querySelector(s);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* ---------------- language ---------------- */
+document.title = L('RPC 实验台', 'RPC Lab');
+if (EN){
+  document.querySelectorAll('[data-en]').forEach(e => { e.innerHTML = e.dataset.en; });
+  document.querySelectorAll('[data-en-label]').forEach(e => e.setAttribute('aria-label', e.dataset.enLabel));
+  document.querySelectorAll('[data-en-title]').forEach(e => e.setAttribute('title', e.dataset.enTitle));
+}
+$('#langBtn').innerHTML = `<span class="${EN ? '' : 'on'}">中</span><span class="${EN ? 'on' : ''}">EN</span>`;
+$('#langBtn').title = EN ? '切换到中文' : 'Switch to English';
+$('#langBtn').addEventListener('click', () => { try { localStorage.setItem('course.lang', EN ? 'zh' : 'en'); } catch {} location.reload(); });
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const EP = 'ep02';
 const K = {LAT: 0.8, RETRY: 2, HOLD: 2, LIMIT: 40};   // story seconds: one-way latency, resend after, lock hold time, give up
@@ -314,7 +335,7 @@ const K = {LAT: 0.8, RETRY: 2, HOLD: 2, LIMIT: 40};   // story seconds: one-way 
 const hash = i => { const x = Math.sin(i*127.1 + 311.7)*43758.5453; return x - Math.floor(x); };
 function init(cfg){
   const sim = {cfg, t: 0, msgs: [], log: [], seq: 0, data: {}, execs: {}, holders: [], maxHold: 0, flash: null, doneAt: null,
-    clients: Array.from({length: cfg.n}, (_, i) => ({i, name: 'C' + (i + 1), status: '准备', res: null, tries: 0, wait: null, done: false, sent: {req: 0, rep: 0}, held: false}))};
+    clients: Array.from({length: cfg.n}, (_, i) => ({i, name: 'C' + (i + 1), status: L('准备', 'ready'), res: null, tries: 0, wait: null, done: false, sent: {req: 0, rep: 0}, held: false}))};
   if (cfg.mode !== 'append') sim.data[cfg.mode === 'lock' ? 'lock' : 'k'] = {v: cfg.mode === 'lock' ? '' : 'init', ver: 1};
   sim.clients.forEach(c => { c.gen = program(sim, c); c.gen.next(); });
   return sim;
@@ -335,7 +356,7 @@ function* call(sim, c, body){
   body.rpc = ++sim.seq; let tries = 0;
   for (;;){
     tries++; c.tries = tries;
-    if (tries > 1) say(sim, c.name, `${c.name} 没等到回信，重寄一封`, `${c.name} timeout, resend ${body.op}`, 'warn');
+    if (tries > 1) say(sim, c.name, L(`${c.name} 没等到回信，重寄一封`, `${c.name} got no reply and sends the letter again`), `${c.name} timeout, resend ${body.op}`, 'warn');
     send(sim, c, 'req', body);
     c.wait = {rpc: body.rpc, until: sim.cfg.retry ? sim.t + K.RETRY : Infinity};
     const rep = yield;
@@ -349,18 +370,18 @@ function handle(sim, c, b){
   if (b.op === 'Append'){
     sim.execs[b.tag] = (sim.execs[b.tag] || 0) + 1;
     d[b.key] = {v: (d[b.key] ? d[b.key].v : '') + b.v, ver: 0}; sim.flash = b.key;
-    say(sim, '服务器', `档案室把「${b.v}」追加到 ${b.key} 后面，现在是「${d[b.key].v}」`, `Append(${b.key}, ${b.v}) → "${d[b.key].v}"`, sim.execs[b.tag] > 1 ? 'bad' : '');
+    say(sim, L('服务器', 'server'), L(`档案室把「${b.v}」追加到 ${b.key} 后面，现在是「${d[b.key].v}」`, `The office appends “${b.v}” to ${b.key}; it is now “${d[b.key].v}”`), `Append(${b.key}, ${b.v}) → "${d[b.key].v}"`, sim.execs[b.tag] > 1 ? 'bad' : '');
     return {err: 'OK'};
   }
   // Put with version
   const e = d[b.key];
   if (!e ? b.ver !== 0 : e.ver !== b.ver){
-    say(sim, '服务器', `${b.key} 现在是第 ${e ? e.ver : 0} 版，信上写的是第 ${b.ver} 版，拒绝`, `Put(${b.key}, v${b.ver}) → ErrVersion (at v${e ? e.ver : 0})`, 'warn');
+    say(sim, L('服务器', 'server'), L(`${b.key} 现在是第 ${e ? e.ver : 0} 版，信上写的是第 ${b.ver} 版，拒绝`, `${b.key} is at version ${e ? e.ver : 0}, the letter says version ${b.ver}: refused`), `Put(${b.key}, v${b.ver}) → ErrVersion (at v${e ? e.ver : 0})`, 'warn');
     return {err: 'ErrVersion'};
   }
   sim.execs[b.tag] = (sim.execs[b.tag] || 0) + 1;
   d[b.key] = {v: b.v, ver: b.ver + 1}; sim.flash = b.key;
-  say(sim, '服务器', `版本对上了：${b.key} 改成「${b.v || '空'}」，升到第 ${b.ver + 1} 版`, `Put(${b.key}, "${b.v}", v${b.ver}) → OK, now v${b.ver + 1}`);
+  say(sim, L('服务器', 'server'), L(`版本对上了：${b.key} 改成「${b.v || '空'}」，升到第 ${b.ver + 1} 版`, `Versions match: ${b.key} becomes “${b.v || 'empty'}”, now version ${b.ver + 1}`), `Put(${b.key}, "${b.v}", v${b.ver}) → OK, now v${b.ver + 1}`);
   return {err: 'OK'};
 }
 // the clerk's rule for a versioned Put
@@ -376,7 +397,7 @@ function* program(sim, c){
     const ch = 'xyz'[c.i];
     c.status = `Append(k, "${ch}")`;
     const r = yield* call(sim, c, {op: 'Append', key: 'k', v: ch, tag: c.name});
-    finish(sim, c, r.err, 'ok', `收到 OK`);
+    finish(sim, c, r.err, 'ok', L('收到 OK', 'got OK'));
   } else if (m === 'version'){
     c.status = 'Get(k)';
     const g = yield* call(sim, c, {op: 'Get', key: 'k'});
@@ -389,15 +410,15 @@ function* program(sim, c){
     for (;;){
       c.status = 'Get(lock)';
       const g = yield* call(sim, c, {op: 'Get', key: 'lock'});
-      if (g.v !== ''){ c.status = `锁被 ${g.v} 拿着，等一会儿`; yield* waitUntil(sim, c, sim.t + 1); continue; }
+      if (g.v !== ''){ c.status = L(`锁被 ${g.v} 拿着，等一会儿`, `lock held by ${g.v}; waiting`); yield* waitUntil(sim, c, sim.t + 1); continue; }
       c.status = `Put(lock, "${c.name}", ${g.ver})`;
       const r = yield* put(sim, c, 'lock', c.name, g.ver, c.name + '#' + g.ver);
       if (r === 'OK' || (r === 'ErrMaybe' && (yield* readBack(sim, c)))){ break; }
-      c.status = r === 'ErrMaybe' ? '读回来不是自己，重来' : '被别人抢先了，重来';
+      c.status = r === 'ErrMaybe' ? L('读回来不是自己，重来', 'read back: not mine; again') : L('被别人抢先了，重来', 'someone got there first; again');
     }
     c.held = true; sim.holders.push(c.name); sim.maxHold = Math.max(sim.maxHold, sim.holders.length);
-    say(sim, c.name, `${c.name} 拿到锁了`, `${c.name} acquired lock`, 'ok');
-    c.status = '持有锁中…';
+    say(sim, c.name, L(`${c.name} 拿到锁了`, `${c.name} has the lock`), `${c.name} acquired lock`, 'ok');
+    c.status = L('持有锁中…', 'holding the lock…');
     yield* waitUntil(sim, c, sim.t + K.HOLD);
     for (;;){
       const g = yield* call(sim, c, {op: 'Get', key: 'lock'});
@@ -407,16 +428,16 @@ function* program(sim, c){
       if (r === 'OK' || r === 'ErrMaybe') break;
     }
     c.held = false; sim.holders = sim.holders.filter(x => x !== c.name);
-    finish(sim, c, 'released', 'ok', '用完，已解锁');
+    finish(sim, c, 'released', 'ok', L('用完，已解锁', 'done; released'));
   }
 }
 function* readBack(sim, c){
-  c.status = '收到 ErrMaybe，读回来确认';
+  c.status = L('收到 ErrMaybe，读回来确认', 'got ErrMaybe; reading back to check');
   const g = yield* call(sim, c, {op: 'Get', key: 'lock'});
   return g.v === c.name;
 }
 function* waitUntil(sim, c, t){ c.sleep = t; while (sim.t < t) yield; c.sleep = null; }
-function finish(sim, c, res, kind, text){ c.done = true; c.res = {res, kind, text}; c.status = '结束'; say(sim, c.name, `${c.name} 结束：${text}`, `${c.name} returns ${res}`, kind === 'ok' ? 'ok' : kind === 'bad' ? 'bad' : 'warn'); }
+function finish(sim, c, res, kind, text){ c.done = true; c.res = {res, kind, text}; c.status = L('结束', 'finished'); say(sim, c.name, L(`${c.name} 结束：${text}`, `${c.name} finished: ${text}`), `${c.name} returns ${res}`, kind === 'ok' ? 'ok' : kind === 'bad' ? 'bad' : 'warn'); }
 
 function tick(sim, dt){
   sim.t += dt;
@@ -425,7 +446,7 @@ function tick(sim, dt){
     if (m.handled || sim.t < m.t1) continue;
     m.handled = true;
     const c = sim.clients[m.c];
-    if (m.lost){ say(sim, '邮局', `${c.name} 的${m.dir === 'req' ? '信' : '回信'}丢了`, `${m.dir === 'req' ? 'request' : 'reply'} ${m.body.op} lost`, 'bad'); continue; }
+    if (m.lost){ say(sim, L('邮局', 'post'), L(`${c.name} 的${m.dir === 'req' ? '信' : '回信'}丢了`, `${c.name}'s ${m.dir === 'req' ? 'letter' : 'reply'} was lost`), `${m.dir === 'req' ? 'request' : 'reply'} ${m.body.op} lost`, 'bad'); continue; }
     if (m.dir === 'req'){
       const rep = handle(sim, c, m.body);
       send(sim, c, 'rep', {...rep, rpc: m.body.rpc, op: m.body.op});
@@ -447,24 +468,24 @@ function runHeadless(cfg){ const s = init(cfg); while (s.doneAt == null) tick(s,
 function judge(sim){
   const c = sim.cfg, out = {ok: true, lines: []};
   const stuck = sim.clients.filter(x => !x.done);
-  if (stuck.length){ out.ok = false; out.lines.push(`${stuck.map(x => x.name).join('、')} 到 ${K.LIMIT} 秒还没结束：${c.retry ? '一直没等到回信' : '信或回信丢了，又没有重试，它会永远等下去'}。`); }
+  if (stuck.length){ out.ok = false; out.lines.push(L(`${stuck.map(x => x.name).join('、')} 到 ${K.LIMIT} 秒还没结束：${c.retry ? '一直没等到回信' : '信或回信丢了，又没有重试，它会永远等下去'}。`, `${stuck.map(x => x.name).join(', ')} still not finished at ${K.LIMIT} s: ${c.retry ? 'no reply ever came' : 'a letter or reply was lost and there is no retry, so it will wait forever'}.`)); }
   if (c.mode === 'append'){
     const v = sim.data.k ? sim.data.k.v : '', want = sim.clients.filter(x => sim.execs[x.name]).map(x => 'xyz'[x.i]).join('');
-    for (const x of sim.clients){ const n = sim.execs[x.name] || 0; if (n > 1){ out.ok = false; out.lines.push(`${x.name} 的追加执行了 ${n} 次，k 里多了 ${n - 1} 个「${'xyz'[x.i]}」。`); } }
-    out.big = `k = 「${v || '空'}」`;
-    if (out.ok) out.lines.push('每个追加都只执行了一次。');
+    for (const x of sim.clients){ const n = sim.execs[x.name] || 0; if (n > 1){ out.ok = false; out.lines.push(L(`${x.name} 的追加执行了 ${n} 次，k 里多了 ${n - 1} 个「${'xyz'[x.i]}」。`, `${x.name}'s append ran ${n} times; k has ${n - 1} extra “${'xyz'[x.i]}”.`)); } }
+    out.big = L(`k = 「${v || '空'}」`, `k = “${v || 'empty'}”`);
+    if (out.ok) out.lines.push(L('每个追加都只执行了一次。', 'Every append ran exactly once.'));
   } else if (c.mode === 'version'){
     for (const x of sim.clients){
       if (!x.done) continue;
       const n = sim.execs[x.name] || 0, r = x.res.res;
       const truth = r === 'OK' ? n === 1 : r === 'ErrVersion' ? n === 0 : true;
-      if (!truth){ out.ok = false; out.lines.push(`${x.name} 回答 ${r}，可它的 Put 其实${n ? '已经执行了' : '没有执行'}。这句话不是实话。`); }
-      else out.lines.push(`${x.name} 回答 ${r}：${r === 'ErrMaybe' ? `实际${n ? '执行了' : '没执行'}，「可能」是诚实的回答` : r === 'OK' ? '确实执行了一次' : '确实没执行'}。`);
+      if (!truth){ out.ok = false; out.lines.push(L(`${x.name} 回答 ${r}，可它的 Put 其实${n ? '已经执行了' : '没有执行'}。这句话不是实话。`, `${x.name} answered ${r}, but its Put actually ${n ? 'did run' : 'did not run'}. That answer is not the truth.`)); }
+      else out.lines.push(L(`${x.name} 回答 ${r}：${r === 'ErrMaybe' ? `实际${n ? '执行了' : '没执行'}，「可能」是诚实的回答` : r === 'OK' ? '确实执行了一次' : '确实没执行'}。`, `${x.name} answered ${r}: ${r === 'ErrMaybe' ? `it actually ${n ? 'ran' : 'did not run'}, so “maybe” is the honest answer` : r === 'OK' ? 'it really ran once' : 'it really did not run'}.`));
     }
-    out.big = sim.data.k ? `k = 「${sim.data.k.v}」· 第 ${sim.data.k.ver} 版` : '';
+    out.big = sim.data.k ? L(`k = 「${sim.data.k.v}」· 第 ${sim.data.k.ver} 版`, `k = “${sim.data.k.v}” · version ${sim.data.k.ver}`) : '';
   } else {
-    if (sim.maxHold > 1){ out.ok = false; out.lines.push(`同一时刻有 ${sim.maxHold} 个客户端以为自己拿着锁。`); }
-    else out.lines.push('任何时刻最多只有一个客户端拿着锁。');
+    if (sim.maxHold > 1){ out.ok = false; out.lines.push(L(`同一时刻有 ${sim.maxHold} 个客户端以为自己拿着锁。`, `${sim.maxHold} clients believed they held the lock at the same moment.`)); }
+    else out.lines.push(L('任何时刻最多只有一个客户端拿着锁。', 'At most one client held the lock at any moment.'));
   }
   return out;
 }
@@ -481,23 +502,23 @@ function readSettings(){
 function writeSettings(){
   $('#optMode').value = cfg.mode; $('#optN').value = cfg.n; $('#optLoss').value = String(cfg.loss); $('#optRetry').checked = cfg.retry; $('#optMaybe').checked = cfg.maybe;
   $('#optDrop').value = cfg.drop ? `${cfg.drop.dir}:${cfg.drop.nth}` : '';
-  $('#script').hidden = !cfg.note; $('#script').textContent = cfg.note ? '场景：' + cfg.note : '';
+  $('#script').hidden = !cfg.note; $('#script').textContent = cfg.note ? L('场景：', 'Scenario: ') + cfg.note : '';
 }
 function reset(){ sim = init(cfg); shown = 0; $('#log').innerHTML = ''; $('#clients').innerHTML = ''; $('#lanes').innerHTML = ''; setPlaying(false); draw(); }
-function setPlaying(v){ playing = v; $('#play').textContent = v ? '暂停' : sim && sim.doneAt != null ? '重放' : '播放'; }
+function setPlaying(v){ playing = v; $('#play').textContent = v ? L('暂停', 'Pause') : sim && sim.doneAt != null ? L('重放', 'Replay') : L('播放', 'Play'); }
 function draw(){
-  $('#clock').innerHTML = `${sim.t.toFixed(1)} <small>秒</small>`;
-  const ph = $('#phase'); ph.className = 'phase ' + (sim.doneAt != null ? 'done' : sim.t > 0 ? 'run' : ''); ph.textContent = sim.doneAt != null ? '结束' : sim.t > 0 ? '运行中' : '准备';
+  $('#clock').innerHTML = `${sim.t.toFixed(1)} <small>${L('秒', 's')}</small>`;
+  const ph = $('#phase'); ph.className = 'phase ' + (sim.doneAt != null ? 'done' : sim.t > 0 ? 'run' : ''); ph.textContent = sim.doneAt != null ? L('结束', 'Finished') : sim.t > 0 ? L('运行中', 'Running') : L('准备', 'Ready');
   // clients + lanes, one row each
   const cb = $('#clients'), lb = $('#lanes');
   if (cb.children.length !== sim.clients.length){ cb.innerHTML = ''; lb.innerHTML = '';
-    sim.clients.forEach(c => { cb.append(el('div', 'cli', `<div class="top"><span class="name">${c.name}</span><span class="tries"></span></div><div class="status"></div><span class="res" hidden></span>`)); lb.append(el('div', 'lane', `<span class="lbl2">${c.name} ⇄ 服务器</span>`)); }); }
+    sim.clients.forEach(c => { cb.append(el('div', 'cli', `<div class="top"><span class="name">${c.name}</span><span class="tries"></span></div><div class="status"></div><span class="res" hidden></span>`)); lb.append(el('div', 'lane', `<span class="lbl2">${c.name} ⇄ ${L('服务器', 'server')}</span>`)); }); }
   sim.clients.forEach((c, i) => {
     const d = cb.children[i];
     d.className = 'cli' + (c.held ? ' held' : c.wait ? ' wait' : '');
-    d.querySelector('.tries').textContent = c.tries > 1 && !c.done ? `第 ${c.tries} 次发送` : '';
-    d.querySelector('.status').textContent = c.wait && !c.done ? `${c.status} · 等回信` : c.status;
-    const r = d.querySelector('.res'); r.hidden = !c.res; if (c.res){ r.className = 'res ' + c.res.kind; r.textContent = c.res.res === 'released' ? '已解锁' : c.res.res; }
+    d.querySelector('.tries').textContent = c.tries > 1 && !c.done ? L(`第 ${c.tries} 次发送`, `send #${c.tries}`) : '';
+    d.querySelector('.status').textContent = c.wait && !c.done ? `${c.status} · ${L('等回信', 'awaiting reply')}` : c.status;
+    const r = d.querySelector('.res'); r.hidden = !c.res; if (c.res){ r.className = 'res ' + c.res.kind; r.textContent = c.res.res === 'released' ? L('已解锁', 'released') : c.res.res; }
     // messages in flight on this lane (and lost ones for a moment)
     const lane = lb.children[i], live = sim.msgs.filter(m => m.c === i && (sim.t < m.t1 || (m.lost && sim.t < m.t1 + 1.2)));
     lane.querySelectorAll('.msg').forEach(x => x.remove());
@@ -511,13 +532,13 @@ function draw(){
   });
   // server table
   const keys = Object.keys(sim.data);
-  const ex = sim.clients.map(c => { const n = Object.entries(sim.execs).filter(([k]) => k === c.name || k.startsWith(c.name + '#')).reduce((s, [, v]) => s + v, 0); return `<span>${c.name} 的修改被执行了 <b class="${n > 1 && cfg.mode === 'append' ? 'dup' : ''}">${n}</b> 次</span>`; }).join('');
-  $('#srv').innerHTML = `<table><thead><tr><th>键</th><th>值</th>${cfg.mode === 'append' ? '' : '<th>版本</th>'}</tr></thead><tbody>${keys.length ? keys.map(k => `<tr class="${sim.flash === k && sim.t - flashT < 1.2 ? 'flash' : ''}"><td>${k}</td><td>「${esc(sim.data[k].v) || '空'}」</td>${cfg.mode === 'append' ? '' : `<td class="ver">${sim.data[k].ver}</td>`}</tr>`).join('') : `<tr><td colspan="3" class="empty">还没有数据</td></tr>`}</tbody></table><div class="execs">${ex}</div>`;
+  const ex = sim.clients.map(c => { const n = Object.entries(sim.execs).filter(([k]) => k === c.name || k.startsWith(c.name + '#')).reduce((s, [, v]) => s + v, 0); const b = `<b class="${n > 1 && cfg.mode === 'append' ? 'dup' : ''}">${n}</b>`; return `<span>${L(`${c.name} 的修改被执行了 ${b} 次`, `${c.name}'s change ran ${b} time${n === 1 ? '' : 's'}`)}</span>`; }).join('');
+  $('#srv').innerHTML = `<table><thead><tr><th>${L('键', 'key')}</th><th>${L('值', 'value')}</th>${cfg.mode === 'append' ? '' : `<th>${L('版本', 'version')}</th>`}</tr></thead><tbody>${keys.length ? keys.map(k => `<tr class="${sim.flash === k && sim.t - flashT < 1.2 ? 'flash' : ''}"><td>${k}</td><td>${L(`「${esc(sim.data[k].v) || '空'}」`, `“${esc(sim.data[k].v) || 'empty'}”`)}</td>${cfg.mode === 'append' ? '' : `<td class="ver">${sim.data[k].ver}</td>`}</tr>`).join('') : `<tr><td colspan="3" class="empty">${L('还没有数据', 'no data yet')}</td></tr>`}</tbody></table><div class="execs">${ex}</div>`;
   if (sim.flash){ flashT = sim.t; sim.flash = null; }
   for (; shown < sim.log.length; shown++){ const e = sim.log[shown]; $('#log').prepend(el('li', 'k-' + e.kind, `<span class="lt">${e.t.toFixed(1)}s</span><span class="lw">${e.who}</span><span class="lx">${esc(talk === 'plain' ? e.plain : e.term)}</span>`)); }
   const v = $('#verdict');
-  if (sim.doneAt != null){ const j = judge(sim); v.innerHTML = `<h3>结果校验</h3><p class="big ${j.ok ? 'ok' : 'bad'}">${j.ok ? '没问题' : '出问题了'}</p>${j.big ? `<p><b>${esc(j.big)}</b></p>` : ''}${j.lines.map(l => `<p>${esc(l)}</p>`).join('')}`; }
-  else v.innerHTML = `<h3>结果校验</h3><p>所有客户端结束后，这里会核对两件事：每个操作实际执行了几次，以及每个客户端拿到的答复是不是实话。</p>`;
+  if (sim.doneAt != null){ const j = judge(sim); v.innerHTML = `<h3>${L('结果校验', 'Checking the result')}</h3><p class="big ${j.ok ? 'ok' : 'bad'}">${j.ok ? L('没问题', 'All good') : L('出问题了', 'Something went wrong')}</p>${j.big ? `<p><b>${esc(j.big)}</b></p>` : ''}${j.lines.map(l => `<p>${esc(l)}</p>`).join('')}`; }
+  else v.innerHTML = L(`<h3>结果校验</h3><p>所有客户端结束后，这里会核对两件事：每个操作实际执行了几次，以及每个客户端拿到的答复是不是实话。</p>`, `<h3>Checking the result</h3><p>When every client has finished, this checks two things: how many times each operation actually ran, and whether the answer each client got is the truth.</p>`);
 }
 function frame(now){ const dt = Math.min(.1, (now - last) / 1000) * speed; last = now; if (playing && sim.doneAt == null){ tick(sim, dt); draw(); if (sim.doneAt != null){ setPlaying(false); draw(); } } requestAnimationFrame(frame); }
 function setTalk(m){ talk = m; try { localStorage.setItem('lab.talk', m); } catch {} document.querySelectorAll('#talk button').forEach(b => b.classList.toggle('on', b.dataset.m === m)); $('#log').innerHTML = ''; shown = 0; draw(); }
@@ -554,12 +575,40 @@ const QS = [
   {title: '加锁时回信丢了', sub: '锁 · 2 个客户端 · 丢掉 C1 加锁的回信', preset: {mode: 'lock', n: 2, drop: {dir: 'rep', nth: 2}, note: 'C1 加锁那封 Put 的回信丢了'},
    setup: 'C1 读到锁是空的（第 1 版），寄出 Put(lock, "C1", 1)。档案室写好了，回信丢了。C1 重寄，收到 ErrVersion，于是得到 ErrMaybe。C2 也想要这把锁。',
    ask: '接下来呢？', opts: ['C1 当作没拿到，重新排队；锁被空占着', 'C1 再读一次锁，发现是自己的名字，拿到锁', 'C2 会和 C1 同时拿到锁'], right: 1,
-   explain: () => { const a = runHeadless(mk(QS[5].preset)); const order = a.log.filter(e => /拿到锁了/.test(e.plain)).map(e => e.who); return `C1 收到 ErrMaybe 后，读回锁的值，看到的是自己的名字「C1」，于是知道第一次已经成功了。拿锁的顺序：${order.join(' → ')}，同一时刻最多 ${a.maxHold} 个人持有锁。如果 C1 把 ErrMaybe 当作失败，它会看到锁「被 C1 拿着」而一直等下去，等的正是它自己。`; }},
+   explain: () => { const a = runHeadless(mk(QS[5].preset)); const order = a.log.filter(e => /acquired lock/.test(e.term)).map(e => e.who); return `C1 收到 ErrMaybe 后，读回锁的值，看到的是自己的名字「C1」，于是知道第一次已经成功了。拿锁的顺序：${order.join(' → ')}，同一时刻最多 ${a.maxHold} 个人持有锁。如果 C1 把 ErrMaybe 当作失败，它会看到锁「被 C1 拿着」而一直等下去，等的正是它自己。`; }},
 ];
+// English text for QS, by index; the scenarios themselves (presets) are shared.
+const QS_EN = [
+  {title: 'The reply is lost; the append is sent again', sub: 'No version · lose the 1st reply', note: 'C1 appends “x”; the 1st reply is lost',
+   setup: 'C1 asks the records office to append an “x” to k. The office does it, but the reply is lost on the way. C1 waits 2 s and sends an identical letter.',
+   ask: 'What is k in the end?', opts: ['“x”', '“xx”', 'Empty; nothing was written'],
+   explain: () => { const a = runHeadless(mk(QS[0].preset)); return `The result is “${a.data.k.v}”: the append ran ${a.execs.C1} times. The office can’t tell the second letter is a resend; it only sees “another append request”. C1 gets OK and thinks all is well, but an extra x was written. This is the “ran twice” from the video.`; }},
+  {title: 'Switch to a versioned Put', sub: 'Get, then Put · lose the Put’s reply', note: 'C1’s Put reply is lost',
+   setup: 'C1 first Gets k at version 1, then sends Put(k, "C1", 1). The office makes the change and moves to version 2, but this reply is lost. C1 resends the same Put(k, "C1", 1).',
+   ask: 'What does C1 return in the end?', opts: ['OK', 'ErrVersion', 'ErrMaybe'],
+   explain: () => { const a = runHeadless(mk(QS[1].preset)); return `The resent letter says version 1, but k is already at version ${a.data.k.ver}, so the office replies ErrVersion and the duplicate change does not run (it actually ran ${a.execs.C1} time). C1 got the refusal only after resending, so it can’t tell whether its own first try succeeded or someone else changed k first; it returns ${a.clients[0].res.res}.`; }},
+  {title: 'The letter is lost, not the reply', sub: 'Versioned · lose the Put’s request', note: 'C1’s Put request is lost',
+   setup: 'Just C1 again. This time the Put letter itself is lost; the office never receives it. C1 resends after 2 s.',
+   ask: 'What does C1 return in the end?', opts: ['OK', 'ErrVersion', 'ErrMaybe'],
+   explain: () => { const a = runHeadless(mk(QS[2].preset)); return `The first letter never arrived, so the office is still at version 1; the resent letter’s version matches, it runs normally, and the reply is OK. C1 returns ${a.clients[0].res.res}. Note: this Put was resent too, but only “ErrVersion after a resend” calls for “maybe”; OK is a definite success.`; }},
+  {title: 'Two people see the same version and both change it', sub: '2 clients · nothing lost', note: 'C1 and C2 both see version 1 and Put almost together',
+   setup: 'C1 and C2 Get at almost the same time and both see k at version 1, then both send Put(k, own name, 1). The network is fine; nothing is lost.',
+   ask: 'What is the result?', opts: ['Both OK; the later one overwrites the earlier', 'One OK, the other ErrVersion', 'Both ErrMaybe'],
+   explain: () => { const a = runHeadless(mk(QS[3].preset)); return `${a.clients.find(c => c.res.res === 'OK').name}, arriving first, moves k to version 2; the later letter still says version 1, is refused, and returns ${a.clients.find(c => c.res.res !== 'OK').res.res}. It was refused on its first send, so the answer is a definite ErrVersion, not “maybe”. The version lets the server check the assumption “it is still what I saw”. In the end k = “${a.data.k.v}”.`; }},
+  {title: 'Turn off retries', sub: 'No resend · lose the Put’s request', note: 'Retries off; C1’s Put request is lost',
+   setup: 'After sending its Put, C1 waits for a reply forever and never resends. As luck would have it, the letter is lost.',
+   ask: 'What happens?', opts: ['The office notices the lost letter and tells C1', 'C1 waits forever', 'C1 waits a while, then returns ErrVersion'],
+   explain: () => { const a = runHeadless(mk(QS[4].preset)); return `The office never knew the letter existed, so it never replies. C1 is still waiting at ${K.LIMIT} s (status: ${a.clients[0].done ? 'finished' : 'awaiting reply'}). Nobody in a network tells you “your message was lost”, so the client has to set its own timeout and resend. Lab 2’s tests run on an unreliable network, and a Clerk that doesn’t retry will certainly get stuck.`; }},
+  {title: 'The reply to an acquire is lost', sub: 'Lock · 2 clients · lose the reply to C1’s acquire', note: 'The reply to C1’s acquiring Put is lost',
+   setup: 'C1 reads the lock as free (version 1) and sends Put(lock, "C1", 1). The office writes it, but the reply is lost. C1 resends, gets ErrVersion, and so ends up with ErrMaybe. C2 wants the lock too.',
+   ask: 'What happens next?', opts: ['C1 treats it as not acquired and queues again; the lock sits taken by nobody', 'C1 reads the lock again, sees its own name, and has the lock', 'C2 gets the lock at the same time as C1'],
+   explain: () => { const a = runHeadless(mk(QS[5].preset)); const order = a.log.filter(e => /acquired lock/.test(e.term)).map(e => e.who); return `After ErrMaybe, C1 reads the lock’s value back and sees its own name “C1”, so it knows the first try succeeded. Order of acquiring: ${order.join(' → ')}; at most ${a.maxHold} held the lock at once. Had C1 treated ErrMaybe as failure, it would see the lock “held by C1” and wait forever, waiting on itself.`; }},
+];
+if (EN) QS.forEach((q, i) => { const e = QS_EN[i]; Object.assign(q, e, {preset: {...q.preset, note: e.note}}); });
 function mk(p){ return {...BASE, ...p}; }
 function buildQs(){
   QS.forEach((q, qi) => {
-    const a = el('article', 'q', `<span class="qn">题 ${qi + 1}</span><h3>${q.title}</h3><p class="qsub" style="font:500 12.5px var(--f-mono);color:var(--mute);margin-top:-6px">${q.sub}</p><p class="setup">${q.setup}</p><p class="ask">${q.ask}</p><div class="opts"></div><div class="ans" hidden></div>`);
+    const a = el('article', 'q', `<span class="qn">${L('题', 'Q')} ${qi + 1}</span><h3>${q.title}</h3><p class="qsub" style="font:500 12.5px var(--f-mono);color:var(--mute);margin-top:-6px">${q.sub}</p><p class="setup">${q.setup}</p><p class="ask">${q.ask}</p><div class="opts"></div><div class="ans" hidden></div>`);
     const opts = a.querySelector('.opts'), ans = a.querySelector('.ans');
     q.opts.forEach((o, oi) => { const b = el('button', 'opt', o); b.type = 'button';
       b.addEventListener('click', () => {
@@ -567,8 +616,8 @@ function buildQs(){
         if (oi !== q.right) b.classList.add('wrong');
         try { const k = `course.${EP}.lab.answered`, got = new Set(JSON.parse(localStorage.getItem(k) || '[]')); got.add(qi); localStorage.setItem(k, JSON.stringify([...got])); } catch {}
         ans.hidden = false;
-        ans.innerHTML = `<p class="res ${oi === q.right ? 'ok' : 'bad'}">${oi === q.right ? '答对了。' : '不对，正确答案已标出。'}</p><p>${q.explain()}</p>`;
-        const run = el('button', 'btn primary', '在模拟器里运行这个场景'); run.type = 'button';
+        ans.innerHTML = `<p class="res ${oi === q.right ? 'ok' : 'bad'}">${oi === q.right ? L('答对了。', 'Correct.') : L('不对，正确答案已标出。', 'Not quite; the right answer is marked.')}</p><p>${q.explain()}</p>`;
+        const run = el('button', 'btn primary', L('在模拟器里运行这个场景', 'Run this scenario in the simulator')); run.type = 'button';
         run.addEventListener('click', () => { cfg = mk(q.preset); writeSettings(); reset(); $('#lab').scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth'}); setTimeout(() => setPlaying(true), REDUCED ? 0 : 500); });
         ans.append(run);
       });

@@ -15,6 +15,8 @@ try { if (token) sessionStorage.setItem('dojo.token', token); else token = sessi
 if (token && location.search) history.replaceState(null, '', location.pathname + '?d=' + D);
 document.title = C.title + ' · ' + (C.subtitle || '');
 $('#dojoTitle').textContent = C.title; $('#dojoSub').textContent = C.subtitle || '';
+$('#runner').after(langToggle($('.top')));
+const msgOf = t => L(t.msg, t.msg_en || t.msg);
 
 async function api(path, opts = {}){
   const r = await fetch(path, {...opts, headers: {...(opts.headers || {}), 'X-Dojo-Token': token || ''}});
@@ -44,8 +46,8 @@ async function loadFiles(initial){
       if (!have.dirty){
         const cur = have.doc.getCursor(); have.doc.setValue(f.content); have.doc.setCursor(cur);
         have.saved = f.content; have.mtime = f.mtime; have.dirty = false;
-        setSaved(`${f.name} 在别的编辑器里改过，已经同步。`);
-      } else setSaved(`注意：${f.name} 在别的编辑器里也改过。这里的修改保存时会覆盖它。`);
+        setSaved(L(`${f.name} 在别的编辑器里改过，已经同步。`, `${f.name} was changed in another editor; synced.`));
+      } else setSaved(L(`注意：${f.name} 在别的编辑器里也改过。这里的修改保存时会覆盖它。`, `Note: ${f.name} was also changed in another editor. Saving here will overwrite it.`));
     }
   }
   if (initial) renderTabs();
@@ -64,8 +66,8 @@ async function save(name){
   try {
     const r = await api('/api/file?dojo=' + D + '&name=' + encodeURIComponent(name), {method: 'PUT', body: content});
     f.saved = content; f.mtime = r.mtime; f.dirty = f.doc.getValue() !== content;
-    setSaved(`已保存 · ${C.id}/${name}`);
-  } catch (e){ setSaved(`保存 ${name} 失败：${e.message}`); }
+    setSaved(L('已保存', 'Saved') + ` · ${C.id}/${name}`);
+  } catch (e){ setSaved(L(`保存 ${name} 失败：${e.message}`, `Could not save ${name}: ${e.message}`)); }
   renderTabs();
 }
 async function saveAll(){ await Promise.all(Object.keys(files).map(n => { clearTimeout(saveTimers[n]); return save(n); })); }
@@ -86,7 +88,7 @@ function renderTabs(){
 async function run(){
   if (running) return;
   running = true; $('#run').disabled = true;
-  $('#results').innerHTML = `<div class="running"><span class="pencil"></span>正在编译并运行 go test${info.race ? ' -race' : ''}……</div>`;
+  $('#results').innerHTML = `<div class="running"><span class="pencil"></span>${L('正在编译并运行', 'Compiling and running')} go test${info.race ? ' -race' : ''}…</div>`;
   try {
     await saveAll();
     const r = await api('/api/run?dojo=' + D, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({level})});
@@ -95,7 +97,7 @@ async function run(){
     if (ok && !passed.has(r.level)){ passed.add(r.level); store.set('passed', [...passed]); }
     tlTest = r.tests.find(t => !t.ok && t.events) || r.tests.find(t => t.events) || null;
   } catch (e){
-    results[level] = {level, ok: false, tests: [], fatal: {code: 'internal', msg: '没能运行测试：' + e.message + '。本地运行器还在运行吗？'}};
+    results[level] = {level, ok: false, tests: [], fatal: {code: 'internal', msg: L('没能运行测试：' + e.message + '。本地运行器还在运行吗？', 'Could not run the tests: ' + e.message + '. Is the local runner still running?')}};
   }
   running = false; $('#run').disabled = false;
   renderLevels(); renderResults(); renderHints(); renderTimeline(); markErrors();
@@ -123,41 +125,43 @@ function markErrors(){
     editor.setGutterMarker(n - 1, 'errs', g); errMarks.push(h);
   });
   const first = marks.find(m => m[1]) || marks[0];
-  if (first){ note.hidden = false; note.textContent = `↑ 第 ${first[0]} 行${first[1] ? '：' + first[1] : '：测试报告里提到了这一行'}`; }
+  if (first){ note.hidden = false; note.textContent = L(`↑ 第 ${first[0]} 行${first[1] ? '：' + first[1] : '：测试报告里提到了这一行'}`, `↑ Line ${first[0]}${first[1] ? ': ' + first[1] : ': the test report mentions this line'}`); }
 }
 
 /* ---------------- results ---------------- */
 function renderResults(){
   const box = $('#results'), r = results[level], lv = C.levels.find(l => l.n === level);
   if (!r){
-    box.innerHTML = `<div class="empty"><span class="big">还没跑过第 ${level} 关</span><p>写好代码后点「运行测试」，或者按 ⌘/Ctrl + Enter。代码会先保存到你电脑上的文件，然后运行真正的 <code>go test${info.race ? ' -race' : ''}</code>。</p></div>`;
+    const cmd = `<code>go test${info.race ? ' -race' : ''}</code>`;
+    box.innerHTML = L(`<div class="empty"><span class="big">还没跑过第 ${level} 关</span><p>写好代码后点「运行测试」，或者按 ⌘/Ctrl + Enter。代码会先保存到你电脑上的文件，然后运行真正的 ${cmd}。</p></div>`,
+      `<div class="empty"><span class="big">Level ${level} hasn't been run yet</span><p>When your code is ready, press Run tests or ⌘/Ctrl + Enter. Your code is saved to the files on your computer first, then the real ${cmd} runs.</p></div>`);
     return;
   }
   let h = '';
   if (r.build_errors?.length){
-    h += `<div class="score"><span class="ring">!</span><span class="say">没能编译<small>点击错误跳到对应的行</small></span></div><div class="berr">${r.build_errors.map((b, i) => `<button type="button" data-be="${i}">${esc(b.file)}:${b.line}:${b.col}  ${esc(b.msg)}</button>`).join('')}</div>`;
+    h += `<div class="score"><span class="ring">!</span><span class="say">${L('没能编译', 'Build failed')}<small>${L('点击错误跳到对应的行', 'Click an error to jump to its line')}</small></span></div><div class="berr">${r.build_errors.map((b, i) => `<button type="button" data-be="${i}">${esc(b.file)}:${b.line}:${b.col}  ${esc(b.msg)}</button>`).join('')}</div>`;
     box.innerHTML = h;
     box.querySelectorAll('[data-be]').forEach(b => b.addEventListener('click', () => { const e = r.build_errors[+b.dataset.be]; open(e.file, e.line); }));
     return;
   }
   const n = r.tests.length, k = r.tests.filter(t => t.ok).length, all = n && k === n;
-  if (n) h += `<div class="score ${all ? 'all' : ''}"><span class="ring">${k}/${n}</span><span class="say">${all ? '全部通过！' : n > 1 && k === n - 1 ? '还差一个！' : '继续加油'}<small>用时 ${r.seconds.toFixed(1)} 秒${r.race ? ' · 开着 -race' : ''}</small></span></div>`;
+  if (n) h += `<div class="score ${all ? 'all' : ''}"><span class="ring">${k}/${n}</span><span class="say">${all ? L('全部通过！', 'All passed!') : n > 1 && k === n - 1 ? L('还差一个！', 'One to go!') : L('继续加油', 'Keep going')}<small>${L(`用时 ${r.seconds.toFixed(1)} 秒`, `${r.seconds.toFixed(1)} s`)}${r.race ? L(' · 开着 -race', ' · with -race') : ''}</small></span></div>`;
   if (all){
     const next = C.levels.find(l => l.n === level + 1);
-    h += `<div class="pass"><b>第 ${level} 关通过</b><span>${next ? '下一关：' + esc(next.title) : esc(C.finalNote || '全部完成！')}</span>${next ? `<button class="btn next" type="button" id="next">去第 ${next.n} 关 →</button>` : ''}</div>`;
+    h += `<div class="pass"><b>${L(`第 ${level} 关通过`, `Level ${level} passed`)}</b><span>${next ? L('下一关：', 'Next: ') + esc(next.title) : esc(C.finalNote || L('全部完成！', 'All done!'))}</span>${next ? `<button class="btn next" type="button" id="next">${L(`去第 ${next.n} 关`, `On to level ${next.n}`)} →</button>` : ''}</div>`;
   }
   if (r.fatal){
-    h += `<div class="test bad"><div class="body" style="padding-left:0"><p class="msg">${esc(r.fatal.msg || C.common[r.fatal.code] || '运行出错')}</p>${r.fatal.detail ? `<pre class="box">${esc(r.fatal.detail)}</pre>` : ''}${r.fatal.output ? `<pre class="box">${esc(r.fatal.output)}</pre>` : ''}</div></div>`;
+    h += `<div class="test bad"><div class="body" style="padding-left:0"><p class="msg">${esc(msgOf(r.fatal) || C.common[r.fatal.code] || L('运行出错', 'Run failed'))}</p>${r.fatal.detail ? `<pre class="box">${esc(r.fatal.detail)}</pre>` : ''}${r.fatal.output ? `<pre class="box">${esc(r.fatal.output)}</pre>` : ''}</div></div>`;
   }
   const firstBad = r.tests.findIndex(t => !t.ok);
   h += r.tests.map((t, i) => `<details class="test ${t.ok ? 'ok' : 'bad'}" ${i === firstBad ? 'open' : ''}>
     <summary><span class="m">${t.ok ? '✓' : '×'}</span><span class="nm">${esc(lv.tests[t.name] || t.name)}</span><span class="el">${t.elapsed.toFixed(1)}s</span></summary>
     <div class="body">
-      ${t.ok ? '' : `<p class="msg">${esc(t.msg || C.common[t.code] || '测试失败')}</p>`}
+      ${t.ok ? '' : `<p class="msg">${esc(msgOf(t) || C.common[t.code] || L('测试失败', 'Test failed'))}</p>`}
       ${t.detail ? `<pre class="box">${esc(t.detail)}</pre>` : ''}
-      ${t.diff ? `<div class="diff"><div class="m"><b>应该有</b><pre class="box">${esc((t.diff.missing || []).join('\n') || '—')}</pre></div><div class="x"><b>实际多出</b><pre class="box">${esc((t.diff.extra || []).join('\n') || '—')}</pre></div></div>` : ''}
-      ${t.output && !t.ok ? `<details><summary class="linkish">程序输出</summary><pre class="box">${esc(t.output)}</pre></details>` : ''}
-      ${t.events ? `<button class="linkish" type="button" data-tl="${i}">在时间线里看看 →</button>` : ''}
+      ${t.diff ? `<div class="diff"><div class="m"><b>${L('应该有', 'Missing')}</b><pre class="box">${esc((t.diff.missing || []).join('\n') || '—')}</pre></div><div class="x"><b>${L('实际多出', 'Unexpected')}</b><pre class="box">${esc((t.diff.extra || []).join('\n') || '—')}</pre></div></div>` : ''}
+      ${t.output && !t.ok ? `<details><summary class="linkish">${L('程序输出', 'Program output')}</summary><pre class="box">${esc(t.output)}</pre></details>` : ''}
+      ${t.events ? `<button class="linkish" type="button" data-tl="${i}">${L('在时间线里看看', 'See it on the timeline')} →</button>` : ''}
     </div></details>`).join('');
   box.innerHTML = h;
   $('#next')?.addEventListener('click', () => go(level + 1));
@@ -172,15 +176,16 @@ function renderTimeline(){
   const box = $('#timeline'), r = results[level];
   const withEv = r ? r.tests.filter(t => t.events && t.events.length) : [];
   if (!withEv.length){
-    box.innerHTML = `<h2>时间线</h2><p class="muted" style="color:var(--mute);font-size:13.5px">${esc(C.timelineIntro || '测试运行时记录下来的事件会画在这里。')}</p>`;
+    box.innerHTML = `<h2>${L('时间线', 'Timeline')}</h2><p class="muted" style="color:var(--mute);font-size:13.5px">${esc(C.timelineIntro || L('测试运行时记录下来的事件会画在这里。', 'Events recorded while the tests run are drawn here.'))}</p>`;
     return;
   }
   if (!withEv.includes(tlTest)) tlTest = withEv[0];
   const lv = C.levels.find(l => l.n === level);
-  const pick = `<select id="tlSel" aria-label="选择测试">${withEv.map((t, i) => `<option value="${i}" ${t === tlTest ? 'selected' : ''}>${t.ok ? '✓' : '✗'} ${esc(lv.tests[t.name] || t.name)}</option>`).join('')}</select>`;
-  box.innerHTML = `<h2>时间线</h2>${pick}${C.renderTimeline ? C.renderTimeline(tlTest, {esc, width: Math.max(300, box.clientWidth - 44)}) : lanesView(tlTest, Math.max(300, box.clientWidth - 44))}`;
+  const pick = `<select id="tlSel" aria-label="${L('选择测试', 'Pick a test')}">${withEv.map((t, i) => `<option value="${i}" ${t === tlTest ? 'selected' : ''}>${t.ok ? '✓' : '✗'} ${esc(lv.tests[t.name] || t.name)}</option>`).join('')}</select>`;
+  box.innerHTML = `<h2>${L('时间线', 'Timeline')}</h2>${pick}${C.renderTimeline ? C.renderTimeline(tlTest, {esc, width: Math.max(300, box.clientWidth - 44)}) : lanesView(tlTest, Math.max(300, box.clientWidth - 44))}`;
   $('#tlSel').addEventListener('change', e => { tlTest = withEv[+e.target.value]; renderTimeline(); });
 }
+const lbl = e => L(e.label, e.label_en) || '';
 function lanesView(test, W){
   const ev = test.events, lanes = [...new Set(ev.map(e => e.lane))];
   const tEnd = Math.max(test.t_end || 0, ...ev.map(e => e.t), 0.05);
@@ -195,25 +200,25 @@ function lanesView(test, W){
     if (e.k !== 'begin') return;
     const f = ev.slice(i + 1).find(x => x.k === 'end' && x.lane === e.lane && x.id === e.id);
     const end = f ? f.t : tEnd, x = X(e.t), w = Math.max(4, X(end) - x), y = Y(e.lane), c = e.bad || (f && f.bad) ? 'var(--bad)' : pal[i % 4];
-    s += `<g><title>${esc(e.label || e.id || '')} · ${e.t.toFixed(3)}s → ${end.toFixed(3)}s${f ? '' : '（没有结束）'}</title><rect x="${x}" y="${y - 10}" width="${w}" height="20" rx="6" fill="${c}" fill-opacity="${f ? .18 : .06}" stroke="${c}" stroke-width="1.5" ${f ? '' : 'stroke-dasharray="5 4"'}/>${w > 24 && e.label ? `<text x="${x + 5}" y="${y + 4}" font-size="11" font-weight="600" fill="${c}">${esc(e.label)}</text>` : ''}</g>`;
+    s += `<g><title>${esc(lbl(e) || e.id || '')} · ${e.t.toFixed(3)}s → ${end.toFixed(3)}s${f ? '' : L('（没有结束）', ' (never ended)')}</title><rect x="${x}" y="${y - 10}" width="${w}" height="20" rx="6" fill="${c}" fill-opacity="${f ? .18 : .06}" stroke="${c}" stroke-width="1.5" ${f ? '' : 'stroke-dasharray="5 4"'}/>${w > 24 && e.label ? `<text x="${x + 5}" y="${y + 4}" font-size="11" font-weight="600" fill="${c}">${esc(lbl(e))}</text>` : ''}</g>`;
   });
   ev.forEach(e => {
     if (e.k !== 'mark') return;
     const x = X(e.t), y = Y(e.lane);
-    s += e.bad ? `<g stroke="var(--bad)" stroke-width="2.5" stroke-linecap="round"><title>${esc(e.label || '')} @ ${e.t.toFixed(3)}s</title><path d="M${x - 7},${y - 8} L${x + 7},${y + 8} M${x + 7},${y - 8} L${x - 7},${y + 8}"/></g>`
-               : `<path d="M${x},${y - 10} L${x},${y + 10}" stroke="var(--ink-2)" stroke-width="2.5" stroke-linecap="round"><title>${esc(e.label || '')} @ ${e.t.toFixed(3)}s</title></path>`;
+    s += e.bad ? `<g stroke="var(--bad)" stroke-width="2.5" stroke-linecap="round"><title>${esc(lbl(e))} @ ${e.t.toFixed(3)}s</title><path d="M${x - 7},${y - 8} L${x + 7},${y + 8} M${x + 7},${y - 8} L${x - 7},${y + 8}"/></g>`
+               : `<path d="M${x},${y - 10} L${x},${y + 10}" stroke="var(--ink-2)" stroke-width="2.5" stroke-linecap="round"><title>${esc(lbl(e))} @ ${e.t.toFixed(3)}s</title></path>`;
   });
   const list = ev.filter(e => e.k !== 'end').slice(0, 300);
-  return `<svg class="tl-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="时间线">${s}</svg>
-    <ol class="evlist">${list.map(e => `<li class="${e.bad ? 'crash' : ''}"><span class="t">${e.t.toFixed(3)}s</span><span class="w">${esc(e.lane)}</span><span>${esc(e.label || e.k)}</span></li>`).join('')}</ol>`;
+  return `<svg class="tl-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${L('时间线', 'Timeline')}">${s}</svg>
+    <ol class="evlist">${list.map(e => `<li class="${e.bad ? 'crash' : ''}"><span class="t">${e.t.toFixed(3)}s</span><span class="w">${esc(e.lane)}</span><span>${esc(lbl(e) || e.k)}</span></li>`).join('')}</ol>`;
 }
 
 /* ---------------- lesson, hints, levels ---------------- */
 function renderLesson(){
   const lv = C.levels.find(l => l.n === level);
   $('#lesson').innerHTML = `<span class="lvn">Level ${lv.n}</span><h1>${esc(lv.title)}</h1><div class="concept">${lv.concept}</div>
-    <p class="task-h">要做的事</p><ol class="task">${lv.task.map(t => `<li>${t}</li>`).join('')}</ol>
-    <button class="file-link" type="button" id="openFile">打开 ${esc(lv.file)} →</button>`;
+    <p class="task-h">${L('要做的事', 'Your task')}</p><ol class="task">${lv.task.map(t => `<li>${t}</li>`).join('')}</ol>
+    <button class="file-link" type="button" id="openFile">${L('打开', 'Open')} ${esc(lv.file)} →</button>`;
   $('#openFile').addEventListener('click', () => open(lv.file));
 }
 function renderHints(){
@@ -221,17 +226,17 @@ function renderHints(){
   const codes = r ? [...new Set([r.fatal?.code, ...(r.build_errors?.length ? ['build'] : []), ...r.tests.filter(t => !t.ok).map(t => t.code)].filter(Boolean))] : [];
   const targeted = codes.map(c => lv.byCode[c] || C.common[c]).filter(Boolean).slice(0, 2);
   const shown = hintsShown[level] || 0;
-  let h = '<h2>提示</h2>';
-  h += targeted.map(t => `<div class="hint targeted"><span class="k">针对刚才的失败</span><span>${t}</span></div>`).join('');
-  h += lv.tiers.slice(0, shown).map((t, i) => `<div class="hint"><span class="k">提示 ${i + 1}${i === 2 ? ' · 思路' : ''}</span><span>${esc(t)}</span></div>`).join('');
-  if (!targeted.length && !shown) h += `<p class="muted">先自己试试。跑一下测试，失败了这里会告诉你原因。</p>`;
-  if (shown < lv.tiers.length) h += `<button class="btn" type="button" id="moreHint">${shown ? '翻到下一条' : '我卡住了'} →（${shown + 1}/${lv.tiers.length}）</button>`;
-  else h += `<p class="muted">提示都翻完了。还卡着的话，打开时间线看看到底发生了什么。</p>`;
+  let h = `<h2>${L('提示', 'Hints')}</h2>`;
+  h += targeted.map(t => `<div class="hint targeted"><span class="k">${L('针对刚才的失败', 'About this failure')}</span><span>${t}</span></div>`).join('');
+  h += lv.tiers.slice(0, shown).map((t, i) => `<div class="hint"><span class="k">${L('提示', 'Hint')} ${i + 1}${i === 2 ? L(' · 思路', ' · the approach') : ''}</span><span>${esc(t)}</span></div>`).join('');
+  if (!targeted.length && !shown) h += `<p class="muted">${L('先自己试试。跑一下测试，失败了这里会告诉你原因。', 'Try it yourself first. Run the tests; if they fail, this panel tells you why.')}</p>`;
+  if (shown < lv.tiers.length) h += `<button class="btn" type="button" id="moreHint">${shown ? L('翻到下一条', 'Next hint') : L('我卡住了', "I'm stuck")} → (${shown + 1}/${lv.tiers.length})</button>`;
+  else h += `<p class="muted">${L('提示都翻完了。还卡着的话，打开时间线看看到底发生了什么。', "That's every hint. Still stuck? Open the timeline and see what actually happened.")}</p>`;
   $('#hints').innerHTML = h;
   $('#moreHint')?.addEventListener('click', () => { hintsShown[level] = shown + 1; store.set('hints', hintsShown); renderHints(); });
 }
 function renderLevels(){
-  $('#levels').innerHTML = C.levels.map(l => `<button class="lv ${passed.has(l.n) ? 'done' : ''} ${l.n === level ? 'cur' : ''}" type="button" data-lv="${l.n}" title="第 ${l.n} 关：${esc(l.title)}"><span class="n">${passed.has(l.n) && l.n !== level ? '✓' : l.n}</span>${esc(l.short)}</button>`).join('');
+  $('#levels').innerHTML = C.levels.map(l => `<button class="lv ${passed.has(l.n) ? 'done' : ''} ${l.n === level ? 'cur' : ''}" type="button" data-lv="${l.n}" title="${L(`第 ${l.n} 关：`, `Level ${l.n}: `)}${esc(l.title)}"><span class="n">${passed.has(l.n) && l.n !== level ? '✓' : l.n}</span>${esc(l.short)}</button>`).join('');
   $('#levels').querySelectorAll('.lv').forEach(b => b.addEventListener('click', () => go(+b.dataset.lv)));
 }
 function go(n){
@@ -253,15 +258,15 @@ async function boot(){
   try {
     info = await api('/api/info');
     $('#runner').className = 'runner ok';
-    $('#runnerText').textContent = `本地运行器已连接 · ${info.go.split(' ')[0]}${info.race ? '' : ' · 无 -race'}`;
+    $('#runnerText').textContent = L('本地运行器已连接', 'Local runner connected') + ` · ${info.go.split(' ')[0]}${info.race ? '' : L(' · 无 -race', ' · no -race')}`;
     await loadFiles(true);
   } catch (e){
     if (e.message === 'unauthorized') return;
-    $('#runner').className = 'runner bad'; $('#runnerText').textContent = '连不上本地运行器，请在终端运行 go run .';
+    $('#runner').className = 'runner bad'; $('#runnerText').textContent = L('连不上本地运行器，请在终端运行 go run .', 'Cannot reach the local runner; run go run . in a terminal');
   }
   $('#run').addEventListener('click', run);
   go(level);
-  setSaved(info.workspace ? `代码就在你电脑上的 ${C.id} 文件夹里，也可以用 VS Code 打开编辑。` : '');
+  setSaved(info.workspace ? L(`代码就在你电脑上的 ${C.id} 文件夹里，也可以用 VS Code 打开编辑。`, `Your code is in the ${C.id} folder on your computer; you can also edit it in VS Code.`) : '');
   if (info.workspace) $('#saved').title = info.workspace + '/' + C.id;
   const sync = () => loadFiles(false).catch(() => {});
   addEventListener('focus', sync);

@@ -1,4 +1,4 @@
-// 分布式系统练功房：本地运行器。
+// 分布式系统练功房：本地运行器。Distributed Systems Dojo: the local runner.
 //
 // It serves the course home and the coding dojo on 127.0.0.1, keeps your code
 // as real files in a workspace folder, and runs `go test -race` on them when
@@ -50,10 +50,10 @@ const (
 )
 
 var (
-	addr      = flag.String("addr", "127.0.0.1:7878", "监听地址（只允许本机）")
-	workspace = flag.String("workspace", "workspace", "你的代码所在的目录")
-	openFlag  = flag.Bool("open", true, "启动后自动打开浏览器")
-	contentF  = flag.String("content", "content", "视频、实验台等课程内容所在的目录")
+	addr      = flag.String("addr", "127.0.0.1:7878", "监听地址（只允许本机） / listen address (this machine only)")
+	workspace = flag.String("workspace", "workspace", "你的代码所在的目录 / folder for your code")
+	openFlag  = flag.Bool("open", true, "启动后自动打开浏览器 / open the browser on start")
+	contentF  = flag.String("content", "content", "视频、实验台等课程内容所在的目录 / folder with videos, lab pages and other course content")
 )
 
 var (
@@ -74,10 +74,10 @@ func main() {
 	flag.Parse()
 	host, _, err := net.SplitHostPort(*addr)
 	if err != nil || !(host == "127.0.0.1" || host == "localhost" || host == "::1") {
-		log.Fatal("为了安全，运行器只能监听本机地址，例如 127.0.0.1:7878")
+		log.Fatal("为了安全，运行器只能监听本机地址，例如 127.0.0.1:7878 / for safety the runner only listens on this machine, e.g. 127.0.0.1:7878")
 	}
 	if goBin, err = exec.LookPath("go"); err != nil {
-		log.Fatal("没有找到 go 命令。请先安装 Go 1.22 或更新的版本：https://go.dev/dl/")
+		log.Fatal("没有找到 go 命令。请先安装 Go 1.22 或更新的版本 / the go command was not found; install Go 1.22 or newer: https://go.dev/dl/")
 	}
 	out, _ := exec.Command(goBin, "version").Output()
 	goVer = strings.TrimSpace(strings.TrimPrefix(string(out), "go version "))
@@ -85,10 +85,10 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := findDojos(); err != nil {
-		log.Fatal("读取练功房失败：", err)
+		log.Fatal("读取练功房失败 / cannot read the dojos: ", err)
 	}
 	if err := setupWorkspace(); err != nil {
-		log.Fatal("准备代码目录失败：", err)
+		log.Fatal("准备代码目录失败 / cannot prepare the code folder: ", err)
 	}
 	raceOK = probeRace()
 
@@ -108,10 +108,11 @@ func main() {
 
 	ln, err := net.Listen("tcp", *addr)
 	if err != nil {
-		log.Fatal("无法监听 ", *addr, "：", err, "（可以用 -addr 换一个端口）")
+		log.Fatal("无法监听 / cannot listen on ", *addr, ": ", err, "（可以用 -addr 换一个端口 / pick another port with -addr）")
 	}
 	url := fmt.Sprintf("http://%s/?t=%s", ln.Addr().String(), token)
-	fmt.Printf("\n  分布式系统练功房 已启动\n\n  课程首页：  %s\n  代码目录：  %s\n  Go 版本：   %s%s\n\n  按 Ctrl+C 退出。\n\n", url, wsDir, goVer, map[bool]string{true: "", false: "（未检测到 -race 支持，将不检查数据竞争）"}[raceOK])
+	fmt.Printf("\n  分布式系统练功房 已启动 · Distributed Systems Dojo is running\n\n  课程首页 Course home:   %s\n  代码目录 Your code:     %s\n  Go 版本  Go version:    %s%s\n\n  按 Ctrl+C 退出 · Press Ctrl+C to quit.\n\n", url, wsDir, goVer,
+		map[bool]string{true: "", false: "\n  （未检测到 -race 支持，将不检查数据竞争 / no -race support found; data races will not be checked）"}[raceOK])
 	if *openFlag {
 		openBrowser(url)
 	}
@@ -337,6 +338,7 @@ type testResult struct {
 	Elapsed float64                `json:"elapsed"`
 	Code    string                 `json:"code,omitempty"`
 	Msg     string                 `json:"msg,omitempty"`
+	MsgEn   string                 `json:"msg_en,omitempty"`
 	Detail  string                 `json:"detail,omitempty"`
 	Diff    map[string]interface{} `json:"diff,omitempty"`
 	Output  string                 `json:"output,omitempty"`
@@ -373,7 +375,7 @@ func handleRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !runMu.TryLock() {
-		http.Error(w, "已经有测试在运行", http.StatusConflict)
+		http.Error(w, "已经有测试在运行 / tests are already running", http.StatusConflict)
 		return
 	}
 	defer runMu.Unlock()
@@ -384,7 +386,7 @@ func runLevel(id string, level int) runResult {
 	start := time.Now()
 	res := runResult{Dojo: id, Level: level, Race: raceOK, Tests: []testResult{}}
 	if err := refreshHarness(id); err != nil {
-		res.Fatal = &testResult{Code: "internal", Msg: "准备测试文件失败：" + err.Error()}
+		res.Fatal = &testResult{Code: "internal", Msg: "准备测试文件失败：" + err.Error(), MsgEn: "Could not prepare the test files: " + err.Error()}
 		return res
 	}
 	traceDir, _ := os.MkdirTemp("", "dojo-trace-")
@@ -470,10 +472,10 @@ func runLevel(id string, level int) runResult {
 		res.Fatal = f
 	}
 	if len(res.BuildErrors) == 0 && len(res.Tests) == 0 && res.Fatal == nil && err != nil {
-		res.Fatal = &testResult{Code: "build", Msg: "编译或运行失败。", Detail: tail(stderr.String()+stdout.String(), 4000)}
+		res.Fatal = &testResult{Code: "build", Msg: "编译或运行失败。", MsgEn: "Build or run failed.", Detail: tail(stderr.String()+stdout.String(), 4000)}
 	}
 	if ctx.Err() != nil {
-		res.Fatal = &testResult{Code: "timeout", Msg: "测试运行超过 150 秒，已经强行停止。可能有死循环或死锁。"}
+		res.Fatal = &testResult{Code: "timeout", Msg: "测试运行超过 150 秒，已经强行停止。可能有死循环或死锁。", MsgEn: "The tests ran for over 150 seconds and were stopped. There may be an endless loop or a deadlock."}
 	}
 	res.OK = err == nil && len(res.Tests) > 0
 	return res
@@ -490,6 +492,7 @@ func classify(t *testResult, id string) {
 			if json.Unmarshal([]byte(ln[i+len("DOJO_FAIL "):]), &f) == nil {
 				t.Code, _ = f["code"].(string)
 				t.Msg, _ = f["msg"].(string)
+				t.MsgEn, _ = f["msg_en"].(string)
 				if d, ok := f["diff"].(map[string]interface{}); ok {
 					t.Diff = d
 				}
@@ -501,18 +504,18 @@ func classify(t *testResult, id string) {
 	t.Output = strings.TrimSpace(tail(strings.Join(clean, "\n"), 6000))
 	switch {
 	case strings.Contains(out, "WARNING: DATA RACE"):
-		t.Code, t.Msg = "race", "-race 检测到数据竞争：两个 goroutine 同时访问了同一个变量，而且至少有一个在写。"
+		t.Code, t.Msg, t.MsgEn = "race", "-race 检测到数据竞争：两个 goroutine 同时访问了同一个变量，而且至少有一个在写。", "-race found a data race: two goroutines accessed the same variable at the same time, and at least one was writing."
 		t.Detail = raceReport(out, id)
 	case strings.Contains(out, "concurrent map"):
-		t.Code, t.Msg = "concurrent_map", "Go 运行时检测到多个 goroutine 同时写同一个 map，程序直接崩溃了。"
+		t.Code, t.Msg, t.MsgEn = "concurrent_map", "Go 运行时检测到多个 goroutine 同时写同一个 map，程序直接崩溃了。", "The Go runtime caught several goroutines writing the same map at once and crashed the program."
 		t.Detail = section(out, "fatal error:", 30)
 	case strings.Contains(out, "panic: test timed out"):
-		t.Code, t.Msg = "timeout", "测试超时，可能有死锁：比如加了锁忘了解锁，或者在持有锁时等待别的 goroutine。"
+		t.Code, t.Msg, t.MsgEn = "timeout", "测试超时，可能有死锁：比如加了锁忘了解锁，或者在持有锁时等待别的 goroutine。", "The test timed out. Maybe a deadlock: a lock taken and never released, or waiting on another goroutine while holding a lock."
 	case strings.Contains(out, "panic:") && t.Code == "":
-		t.Code, t.Msg = "panic", "代码发生了 panic。"
+		t.Code, t.Msg, t.MsgEn = "panic", "代码发生了 panic。", "Your code panicked."
 		t.Detail = section(out, "panic:", 30)
 	case !t.OK && t.Code == "":
-		t.Code, t.Msg = "fail", "测试失败。"
+		t.Code, t.Msg, t.MsgEn = "fail", "测试失败。", "Test failed."
 	}
 }
 
